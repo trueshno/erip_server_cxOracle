@@ -1,12 +1,59 @@
 nohup: ignoring input
-[2026-05-20 11:57:36 +0300] [357007] [INFO] Starting gunicorn 20.1.0
-[2026-05-20 11:57:36 +0300] [357007] [INFO] Listening at: http://127.0.0.1:8000 (357007)
-[2026-05-20 11:57:36 +0300] [357007] [INFO] Using worker: uvicorn.workers.UvicornWorker
-[2026-05-20 11:57:36 +0300] [357011] [INFO] Booting worker with pid: 357011
-[2026-05-20 11:57:36 +0300] [357012] [INFO] Booting worker with pid: 357012
-[2026-05-20 11:57:43 +0300] [357012] [INFO] Started server process [357012]
-[2026-05-20 11:57:43 +0300] [357012] [INFO] Waiting for application startup.
-[2026-05-20 11:57:43 +0300] [357012] [INFO] Application startup complete.
-[2026-05-20 11:57:44 +0300] [357011] [INFO] Started server process [357011]
-[2026-05-20 11:57:44 +0300] [357011] [INFO] Waiting for application startup.
-[2026-05-20 11:57:44 +0300] [357011] [INFO] Application startup complete.
+[2026-05-20 14:21:56 +0300] [363701] [INFO] Starting gunicorn 20.1.0
+[2026-05-20 14:21:56 +0300] [363701] [INFO] Listening at: http://127.0.0.1:8000 (363701)
+[2026-05-20 14:21:56 +0300] [363701] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-05-20 14:21:56 +0300] [363705] [INFO] Booting worker with pid: 363705
+[2026-05-20 14:21:56 +0300] [363706] [INFO] Booting worker with pid: 363706
+[2026-05-20 14:21:58 +0300] [363705] [INFO] Started server process [363705]
+[2026-05-20 14:21:58 +0300] [363705] [INFO] Waiting for application startup.
+[2026-05-20 14:21:58 +0300] [363706] [INFO] Started server process [363706]
+[2026-05-20 14:21:58 +0300] [363706] [INFO] Waiting for application startup.
+[2026-05-20 14:21:58 +0300] [363705] [INFO] Application startup complete.
+[2026-05-20 14:21:58 +0300] [363706] [INFO] Application startup complete.
+[2026-05-20 14:26:01 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:363705)
+[2026-05-20 14:26:17 +0300] [363701] [WARNING] Worker with pid 363705 was terminated due to signal 9
+[2026-05-20 14:26:21 +0300] [364606] [INFO] Booting worker with pid: 364606
+[2026-05-20 14:26:32 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364606)
+[2026-05-20 14:26:34 +0300] [363701] [WARNING] Worker with pid 364606 was terminated due to signal 9
+[2026-05-20 14:26:34 +0300] [364614] [INFO] Booting worker with pid: 364614
+[2026-05-20 14:26:50 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364614)
+[2026-05-20 14:26:51 +0300] [363701] [WARNING] Worker with pid 364614 was terminated due to signal 9
+[2026-05-20 14:26:51 +0300] [364758] [INFO] Booting worker with pid: 364758
+[2026-05-20 14:27:06 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364758)
+[2026-05-20 14:27:07 +0300] [363701] [WARNING] Worker with pid 364758 was terminated due to signal 9
+[2026-05-20 14:27:07 +0300] [364775] [INFO] Booting worker with pid: 364775
+[2026-05-20 14:27:23 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364775)
+[2026-05-20 14:27:27 +0300] [363701] [WARNING] Worker with pid 364775 was terminated due to signal 9
+[2026-05-20 14:27:29 +0300] [364788] [INFO] Booting worker with pid: 364788
+[2026-05-20 14:27:44 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364788)
+[2026-05-20 14:27:45 +0300] [363701] [WARNING] Worker with pid 364788 was terminated due to signal 9
+[2026-05-20 14:27:45 +0300] [364796] [INFO] Booting worker with pid: 364796
+[2026-05-20 14:28:00 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364796)
+[2026-05-20 14:28:01 +0300] [363701] [WARNING] Worker with pid 364796 was terminated due to signal 9
+[2026-05-20 14:28:01 +0300] [364811] [INFO] Booting worker with pid: 364811
+[2026-05-20 14:28:18 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364811)
+[2026-05-20 14:28:22 +0300] [363701] [WARNING] Worker with pid 364811 was terminated due to signal 9
+[2026-05-20 14:28:22 +0300] [364821] [INFO] Booting worker with pid: 364821
+[2026-05-20 14:28:37 +0300] [363701] [CRITICAL] WORKER TIMEOUT (pid:364821)
+[2026-05-20 14:28:40 +0300] [363701] [WARNING] Worker with pid 364821 was terminated due to signal 9
+[2026-05-20 14:28:40 +0300] [364829] [INFO] Booting worker with pid: 364829
+[2026-05-20 14:28:47 +0300] [364829] [INFO] Started server process [364829]
+[2026-05-20 14:28:47 +0300] [364829] [INFO] Waiting for application startup.
+[2026-05-20 14:28:47 +0300] [364829] [INFO] Application startup complete.
+127.0.0.1:38526 - "POST / HTTP/1.1" 422
+[2026-05-20 16:55:14 +0300] [363701] [WARNING] Worker with pid 363706 was terminated due to signal 1
+[2026-05-20 16:55:15 +0300] [363701] [WARNING] Worker with pid 364829 was terminated due to signal 1
+[2026-05-20 16:55:15 +0300] [363701] [INFO] Handling signal: hup
+[2026-05-20 16:55:15 +0300] [363701] [INFO] Hang up: Master
+[2026-05-20 16:55:15 +0300] [371116] [INFO] Booting worker with pid: 371116
+[2026-05-20 16:55:15 +0300] [371117] [INFO] Booting worker with pid: 371117
+[2026-05-20 16:55:17 +0300] [371121] [INFO] Booting worker with pid: 371121
+[2026-05-20 16:55:17 +0300] [363701] [WARNING] Worker with pid 371116 was terminated due to signal 15
+[2026-05-20 16:55:17 +0300] [371122] [INFO] Booting worker with pid: 371122
+[2026-05-20 16:55:17 +0300] [363701] [WARNING] Worker with pid 371117 was terminated due to signal 15
+[2026-05-20 16:55:23 +0300] [371121] [INFO] Started server process [371121]
+[2026-05-20 16:55:23 +0300] [371121] [INFO] Waiting for application startup.
+[2026-05-20 16:55:23 +0300] [371121] [INFO] Application startup complete.
+[2026-05-20 16:55:23 +0300] [371122] [INFO] Started server process [371122]
+[2026-05-20 16:55:23 +0300] [371122] [INFO] Waiting for application startup.
+[2026-05-20 16:55:23 +0300] [371122] [INFO] Application startup complete.

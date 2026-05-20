@@ -1,7 +1,6 @@
 import os
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
-
-from fastapi import FastAPI, Response, Form
+from fastapi import FastAPI, Response, Form, Request
 import structlog
 import xml.etree.ElementTree as ET
 from app.services.db_service import get_stored_response, save_transaction, get_account_info
@@ -43,7 +42,14 @@ def parse_xml(xml_bytes: bytes) -> dict:
     return data
 
 @app.post("/", response_class=Response)
-async def erip_endpoint(XML: str = Form(...)):
+async def erip_endpoint(request: Request):
+    form = await request.form()
+    XML = form.get("XML")
+    
+    if hasattr(XML, 'read'):
+        XML = XML.read().decode("windows-1251", errors="replace")
+    elif isinstance(XML, bytes):
+        XML = XML.decode("windows-1251", errors="replace")
     logger.info("request_received")
     xml_bytes = XML.encode("windows-1251", errors="replace")
     
