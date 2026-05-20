@@ -1,0 +1,12 @@
+nohup: ignoring input
+[2026-05-20 11:57:36 +0300] [357007] [INFO] Starting gunicorn 20.1.0
+[2026-05-20 11:57:36 +0300] [357007] [INFO] Listening at: http://127.0.0.1:8000 (357007)
+[2026-05-20 11:57:36 +0300] [357007] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-05-20 11:57:36 +0300] [357011] [INFO] Booting worker with pid: 357011
+[2026-05-20 11:57:36 +0300] [357012] [INFO] Booting worker with pid: 357012
+[2026-05-20 11:57:43 +0300] [357012] [INFO] Started server process [357012]
+[2026-05-20 11:57:43 +0300] [357012] [INFO] Waiting for application startup.
+[2026-05-20 11:57:43 +0300] [357012] [INFO] Application startup complete.
+[2026-05-20 11:57:44 +0300] [357011] [INFO] Started server process [357011]
+[2026-05-20 11:57:44 +0300] [357011] [INFO] Waiting for application startup.
+[2026-05-20 11:57:44 +0300] [357011] [INFO] Application startup complete.
