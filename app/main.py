@@ -1,8 +1,9 @@
 import os
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
-from fastapi import FastAPI, Response, Form, Request
+from fastapi import FastAPI, Response, Form, Request, UploadFile
 import structlog
 import xml.etree.ElementTree as ET
+from typing import Optional
 from app.services.db_service import get_stored_response, save_transaction, get_account_info
 from app.services.xml_generator import build_serviceinfo_response, build_transactionstart_response, build_error_response
 
@@ -47,10 +48,10 @@ async def erip_endpoint(request: Request):
     form = await request.form()
     XML = form.get("XML")
     
-    xml_content: str | None = None
+    xml_content: Optional[str] = None
     
     if XML is not None and hasattr(XML, 'read'):
-        content = XML.read()
+        content = await XML.read() if hasattr(XML, 'read') and callable(getattr(XML, 'read')) else XML.read()
         if isinstance(content, bytes):
             xml_content = content.decode("windows-1251", errors="replace")
         else:
