@@ -95,8 +95,10 @@ async def erip_endpoint(request: Request):
             from app.models import Transaction
             db = SessionLocal()
             try:
-                db.query(Transaction).filter(Transaction.erip_request_id == req_id).update({"response_xml": resp_xml.decode("windows-1251")})
-                db.commit()
+                tx = db.query(Transaction).filter(Transaction.erip_request_id == req_id).first()
+                if tx is not None:
+                    tx.response_xml = resp_xml.decode("windows-1251")
+                    db.commit()
             finally:
                 db.close()
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
