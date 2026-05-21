@@ -50,16 +50,17 @@ async def erip_endpoint(request: Request):
     
     xml_content: Optional[str] = None
     
-    if XML is not None and hasattr(XML, 'read'):
-        content = await XML.read() if hasattr(XML, 'read') and callable(getattr(XML, 'read')) else XML.read()
-        if isinstance(content, bytes):
-            xml_content = content.decode("windows-1251", errors="replace")
-        else:
-            xml_content = str(content)
-    elif isinstance(XML, bytes):
-        xml_content = XML.decode("windows-1251", errors="replace")
-    elif isinstance(XML, str):
-        xml_content = XML
+    if XML is not None:
+        if hasattr(XML, 'read') and callable(getattr(XML, 'read')):
+            content = await XML.read()
+            if isinstance(content, bytes):
+                xml_content = content.decode("windows-1251", errors="replace")
+            else:
+                xml_content = str(content)
+        elif isinstance(XML, bytes):
+            xml_content = XML.decode("windows-1251", errors="replace")
+        elif isinstance(XML, str):
+            xml_content = XML
     
     if xml_content is None:
         logger.error("Missing or invalid XML in request")
