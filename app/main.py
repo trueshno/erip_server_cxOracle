@@ -47,16 +47,25 @@ async def erip_endpoint(request: Request):
     form = await request.form()
     XML = form.get("XML")
     
-    if hasattr(XML, 'read'):
+    xml_content: str | None = None
+    
+    if XML is not None and hasattr(XML, 'read'):
         content = XML.read()
         if isinstance(content, bytes):
-            XML = content.decode("windows-1251", errors="replace")
+            xml_content = content.decode("windows-1251", errors="replace")
         else:
-            XML = content
+            xml_content = str(content)
     elif isinstance(XML, bytes):
-        XML = XML.decode("windows-1251", errors="replace")
+        xml_content = XML.decode("windows-1251", errors="replace")
+    elif isinstance(XML, str):
+        xml_content = XML
+    
+    if xml_content is None:
+        logger.error("Missing or invalid XML in request")
+        return Response(content=build_error_response("Missing XML"), media_type="text/xml; charset=windows-1251", status_code=200)
+    
     logger.info("request_received")
-    xml_bytes = XML.encode("windows-1251", errors="replace")
+    xml_bytes = xml_content.encode("windows-1251", errors="replace")
     
     try:
         data = parse_xml(xml_bytes)
