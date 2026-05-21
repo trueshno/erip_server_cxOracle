@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ServiceProvider_Request>
+    <RequestType>TransactionStart</RequestType>
+    <RequestId>TEST-REQ-002</RequestId>
+    <Created>2026-05-21T15:00:00</Created>
+    <Terminal Type="0">
+        <TerminalId>TERM-001</TerminalId>
+        <AgentCode>AGENT-BY-001</AgentCode>
+    </Terminal>
+    <PersonalAccount>123456789</PersonalAccount>
+    <Currency>BYN</Currency>
+    <TransactionStart>
+        <Amount>1550</Amount>
+        <TransactionId>ERIP-TRX-999</TransactionId>
+        <AuthorizationType>password</AuthorizationType>
+        <ServiceTrxId>SVC-999</ServiceTrxId>
+    </TransactionStart>
+</ServiceProvider_Request>

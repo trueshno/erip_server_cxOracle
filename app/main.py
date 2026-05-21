@@ -1,8 +1,9 @@
 import os
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
-from fastapi import FastAPI, Response, Form, Request
+from fastapi import FastAPI, Response, Form, Request, UploadFile
 import structlog
 import xml.etree.ElementTree as ET
+from typing import Optional
 from app.services.db_service import get_stored_response, save_transaction, get_account_info
 from app.services.xml_generator import build_serviceinfo_response, build_transactionstart_response, build_error_response
 
@@ -24,13 +25,14 @@ app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
 
 def parse_xml(xml_bytes: bytes) -> dict:
     root = ET.fromstring(xml_bytes.decode("windows-1251", errors="replace"))
+    terminal_elem = root.find(".//Terminal")
     data = {
         "request_type": root.findtext("RequestType"),
         "request_id": root.findtext("RequestId"),
         "personal_account": root.findtext("PersonalAccount"),
         "currency": root.findtext("Currency"),
         "terminal_id": root.findtext("Terminal"),
-        "terminal_type": root.find(".//Terminal").get("Type", "0") if root.find(".//Terminal") is not None else "0"
+        "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
     }
     if data["request_type"] == "ServiceInfo":
         data["agent"] = root.findtext(".//ServiceInfo/Agent")
@@ -46,12 +48,26 @@ async def erip_endpoint(request: Request):
     form = await request.form()
     XML = form.get("XML")
     
-    if hasattr(XML, 'read'):
-        XML = XML.read().decode("windows-1251", errors="replace")
-    elif isinstance(XML, bytes):
-        XML = XML.decode("windows-1251", errors="replace")
+    xml_content: Optional[str] = None
+    
+    if XML is not None:
+        if hasattr(XML, 'read') and callable(getattr(XML, 'read')):
+            content = await XML.read()
+            if isinstance(content, bytes):
+                xml_content = content.decode("windows-1251", errors="replace")
+            else:
+                xml_content = str(content)
+        elif isinstance(XML, bytes):
+            xml_content = XML.decode("windows-1251", errors="replace")
+        elif isinstance(XML, str):
+            xml_content = XML
+    
+    if xml_content is None:
+        logger.error("Missing or invalid XML in request")
+        return Response(content=build_error_response("Missing XML"), media_type="text/xml; charset=windows-1251", status_code=200)
+    
     logger.info("request_received")
-    xml_bytes = XML.encode("windows-1251", errors="replace")
+    xml_bytes = xml_content.encode("windows-1251", errors="replace")
     
     try:
         data = parse_xml(xml_bytes)
@@ -95,8 +111,10 @@ async def erip_endpoint(request: Request):
             from app.models import Transaction
             db = SessionLocal()
             try:
-                db.query(Transaction).filter(Transaction.erip_request_id == req_id).update({"response_xml": resp_xml.decode("windows-1251")})
-                db.commit()
+                tx = db.query(Transaction).filter_by(erip_request_id=req_id).first()
+                if tx is not None:
+                    tx.response_xml = resp_xml.decode("windows-1251")
+                    db.commit()
             finally:
                 db.close()
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)

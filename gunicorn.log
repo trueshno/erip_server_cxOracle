@@ -1,12 +1,12 @@
 nohup: ignoring input
-[2026-05-21 12:08:28 +0300] [423554] [INFO] Starting gunicorn 20.1.0
-[2026-05-21 12:08:28 +0300] [423554] [INFO] Listening at: http://127.0.0.1:8000 (423554)
-[2026-05-21 12:08:28 +0300] [423554] [INFO] Using worker: uvicorn.workers.UvicornWorker
-[2026-05-21 12:08:28 +0300] [423576] [INFO] Booting worker with pid: 423576
-[2026-05-21 12:08:28 +0300] [423585] [INFO] Booting worker with pid: 423585
-[2026-05-21 12:08:44 +0300] [423585] [INFO] Started server process [423585]
-[2026-05-21 12:08:44 +0300] [423585] [INFO] Waiting for application startup.
-[2026-05-21 12:08:44 +0300] [423585] [INFO] Application startup complete.
-[2026-05-21 12:08:53 +0300] [423576] [INFO] Started server process [423576]
-[2026-05-21 12:08:53 +0300] [423576] [INFO] Waiting for application startup.
-[2026-05-21 12:08:53 +0300] [423576] [INFO] Application startup complete.
+[2026-05-21 16:48:46 +0300] [439049] [INFO] Starting gunicorn 20.1.0
+[2026-05-21 16:48:46 +0300] [439049] [INFO] Listening at: http://0.0.0.0:8000 (439049)
+[2026-05-21 16:48:46 +0300] [439049] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-05-21 16:48:46 +0300] [439053] [INFO] Booting worker with pid: 439053
+[2026-05-21 16:48:46 +0300] [439054] [INFO] Booting worker with pid: 439054
+[2026-05-21 16:48:48 +0300] [439054] [INFO] Started server process [439054]
+[2026-05-21 16:48:48 +0300] [439054] [INFO] Waiting for application startup.
+[2026-05-21 16:48:48 +0300] [439054] [INFO] Application startup complete.
+[2026-05-21 16:48:48 +0300] [439053] [INFO] Started server process [439053]
+[2026-05-21 16:48:48 +0300] [439053] [INFO] Waiting for application startup.
+[2026-05-21 16:48:48 +0300] [439053] [INFO] Application startup complete.
