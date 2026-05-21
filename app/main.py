@@ -4,8 +4,13 @@ from fastapi import FastAPI, Response, Form, Request, UploadFile
 import structlog
 import xml.etree.ElementTree as ET
 from typing import Optional
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 from app.services.db_service import get_stored_response, save_transaction, get_account_info
 from app.services.xml_generator import build_serviceinfo_response, build_transactionstart_response, build_error_response
+
+# Создаем пул потоков для блокирующих операций с БД
+executor = ThreadPoolExecutor(max_workers=10)
 
 structlog.configure(
     wrapper_class=structlog.make_filtering_bound_logger(20),
@@ -22,6 +27,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
+
+# Получаем цикл событий для использования с run_in_executor
+loop = None
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
 def parse_xml(xml_bytes: bytes) -> dict:
     root = ET.fromstring(xml_bytes.decode("windows-1251", errors="replace"))
@@ -80,8 +93,8 @@ async def erip_endpoint(request: Request):
     if not req_id or not req_type:
         return Response(content=build_error_response("Missing required fields"), media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # 1. Идемпотентность
-    stored = get_stored_response(req_id)
+    # 1. Идемпотентность (выполняем в пуле потоков, т.к. операция блокирующая)
+    stored = await loop.run_in_executor(executor, get_stored_response, req_id)
     if stored:
         logger.info("idempotent_hit", request_id=req_id)
         return Response(content=stored.encode("windows-1251"), media_type="text/xml; charset=windows-1251", status_code=200)
@@ -89,34 +102,43 @@ async def erip_endpoint(request: Request):
     # 2. Обработка по типу
     try:
         if req_type == "ServiceInfo":
-            acc = get_account_info(data["personal_account"])
+            # Выполняем запрос к БД в пуле потоков
+            acc = await loop.run_in_executor(executor, get_account_info, data["personal_account"])
             if not acc:
                 return Response(content=build_error_response("Account not found"), media_type="text/xml; charset=windows-1251", status_code=200)
             resp_xml = build_serviceinfo_response(acc)
-            save_transaction(req_id, req_type, data["personal_account"], data["currency"], 0.0, "", resp_xml.decode("windows-1251"),
-                             data.get("terminal_id", ""), int(data.get("terminal_type", 0)), int(data.get("agent", 0) or 0))
+            # Сохранение транзакции в пуле потоков
+            await loop.run_in_executor(executor, save_transaction, req_id, req_type, data["personal_account"], 
+                                       data["currency"], 0.0, "", resp_xml.decode("windows-1251"),
+                                       data.get("terminal_id", ""), int(data.get("terminal_type", 0)), 
+                                       int(data.get("agent", 0) or 0))
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionStart":
             resp_xml = build_transactionstart_response("00000000") # Временный ID
-            svc_trx = save_transaction(req_id, req_type, data["personal_account"], data["currency"], data.get("amount_byn", 0.0),
-                                       data.get("erip_trx_id", ""), resp_xml.decode("windows-1251"),
-                                       data.get("terminal_id", ""), int(data.get("terminal_type", 0)), 
-                                       int(data.get("agent", 0) or 0), data.get("auth_type", ""))
+            # Сохранение транзакции в пуле потоков
+            svc_trx = await loop.run_in_executor(executor, save_transaction, req_id, req_type, 
+                                                 data["personal_account"], data["currency"], 
+                                                 data.get("amount_byn", 0.0), data.get("erip_trx_id", ""), 
+                                                 resp_xml.decode("windows-1251"), data.get("terminal_id", ""), 
+                                                 int(data.get("terminal_type", 0)), 
+                                                 int(data.get("agent", 0) or 0), data.get("auth_type", ""))
             if not svc_trx:
                 return Response(content=build_error_response("DB save failed"), media_type="text/xml; charset=windows-1251", status_code=200)
             resp_xml = build_transactionstart_response(svc_trx)
-            # Обновляем сохранённый XML на финальный
+            # Обновляем сохранённый XML на финальный (в пуле потоков)
             from app.db import SessionLocal
             from app.models import Transaction
-            db = SessionLocal()
-            try:
-                tx = db.query(Transaction).filter_by(erip_request_id=req_id).first()
-                if tx is not None:
-                    tx.response_xml = resp_xml.decode("windows-1251")
-                    db.commit()
-            finally:
-                db.close()
+            def update_response():
+                db = SessionLocal()
+                try:
+                    tx = db.query(Transaction).filter_by(erip_request_id=req_id).first()
+                    if tx is not None:
+                        tx.response_xml = resp_xml.decode("windows-1251")
+                        db.commit()
+                finally:
+                    db.close()
+            await loop.run_in_executor(executor, update_response)
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
         else:
             return Response(content=build_error_response("Unsupported RequestType"), media_type="text/xml; charset=windows-1251", status_code=200)
