@@ -24,13 +24,14 @@ app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
 
 def parse_xml(xml_bytes: bytes) -> dict:
     root = ET.fromstring(xml_bytes.decode("windows-1251", errors="replace"))
+    terminal_elem = root.find(".//Terminal")
     data = {
         "request_type": root.findtext("RequestType"),
         "request_id": root.findtext("RequestId"),
         "personal_account": root.findtext("PersonalAccount"),
         "currency": root.findtext("Currency"),
         "terminal_id": root.findtext("Terminal"),
-        "terminal_type": root.find(".//Terminal").get("Type", "0") if root.find(".//Terminal") is not None else "0"
+        "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
     }
     if data["request_type"] == "ServiceInfo":
         data["agent"] = root.findtext(".//ServiceInfo/Agent")
@@ -47,7 +48,11 @@ async def erip_endpoint(request: Request):
     XML = form.get("XML")
     
     if hasattr(XML, 'read'):
-        XML = XML.read().decode("windows-1251", errors="replace")
+        content = XML.read()
+        if isinstance(content, bytes):
+            XML = content.decode("windows-1251", errors="replace")
+        else:
+            XML = content
     elif isinstance(XML, bytes):
         XML = XML.decode("windows-1251", errors="replace")
     logger.info("request_received")
@@ -95,7 +100,7 @@ async def erip_endpoint(request: Request):
             from app.models import Transaction
             db = SessionLocal()
             try:
-                tx = db.query(Transaction).filter(Transaction.erip_request_id == req_id).first()
+                tx = db.query(Transaction).filter_by(erip_request_id=req_id).first()
                 if tx is not None:
                     tx.response_xml = resp_xml.decode("windows-1251")
                     db.commit()

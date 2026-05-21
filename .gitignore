@@ -1,33 +1,50 @@
-```
-# Python
-__pycache__/
+```gitignore
+# Compiled and build artifacts
 *.pyc
-*.pyo
-*.pyd
+__pycache__/
 
-# Environment
+# Dependencies
 .venv/
 venv/
-.env
-.env.local
-*.env.*
+node_modules/
 
-# Logs and temporary files
+# Logs and temp files
 *.log
 *.tmp
 *.swp
+
+# Environment
+.env
+.env.local
+*.env.*
 
 # Editors
 .vscode/
 .idea/
 
-# Build artifacts
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
 dist/
 build/
-*.o
-*.obj
-*.so
-*.a
-*.dll
-*.exe
+*.egg
+
+# System files
+.DS_Store
+Thumbs.db
+```
+
+Wait, let me reconsider. The only modified file is `app/main.py` which is a source code file. There are no build artifacts, dependencies, or temporary files in the changes provided. According to rule #6, if the changes contain only source files and no build artifacts, dependencies, or temp files, I should output an empty .gitignore.
+
+```gitignore
+
 ```
