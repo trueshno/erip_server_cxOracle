@@ -1,12 +1,103 @@
 nohup: ignoring input
-[2026-05-21 16:48:46 +0300] [439049] [INFO] Starting gunicorn 20.1.0
-[2026-05-21 16:48:46 +0300] [439049] [INFO] Listening at: http://0.0.0.0:8000 (439049)
-[2026-05-21 16:48:46 +0300] [439049] [INFO] Using worker: uvicorn.workers.UvicornWorker
-[2026-05-21 16:48:46 +0300] [439053] [INFO] Booting worker with pid: 439053
-[2026-05-21 16:48:46 +0300] [439054] [INFO] Booting worker with pid: 439054
-[2026-05-21 16:48:48 +0300] [439054] [INFO] Started server process [439054]
-[2026-05-21 16:48:48 +0300] [439054] [INFO] Waiting for application startup.
-[2026-05-21 16:48:48 +0300] [439054] [INFO] Application startup complete.
-[2026-05-21 16:48:48 +0300] [439053] [INFO] Started server process [439053]
-[2026-05-21 16:48:48 +0300] [439053] [INFO] Waiting for application startup.
-[2026-05-21 16:48:48 +0300] [439053] [INFO] Application startup complete.
+[2026-05-22 11:09:52 +0300] [491765] [DEBUG] Current configuration:
+  config: ./gunicorn.conf.py
+  wsgi_app: None
+  bind: ['0.0.0.0:8000']
+  backlog: 2048
+  workers: 1
+  worker_class: uvicorn.workers.UvicornWorker
+  threads: 1
+  worker_connections: 1000
+  max_requests: 0
+  max_requests_jitter: 0
+  timeout: 60
+  graceful_timeout: 30
+  keepalive: 2
+  limit_request_line: 4094
+  limit_request_fields: 100
+  limit_request_field_size: 8190
+  reload: False
+  reload_engine: auto
+  reload_extra_files: []
+  spew: False
+  check_config: False
+  print_config: False
+  preload_app: False
+  sendfile: None
+  reuse_port: False
+  chdir: /opt/erip_server_cxOracle
+  daemon: False
+  raw_env: []
+  pidfile: None
+  worker_tmp_dir: None
+  user: 1000
+  group: 1000
+  umask: 0
+  initgroups: False
+  tmp_upload_dir: None
+  secure_scheme_headers: {'X-FORWARDED-PROTOCOL': 'ssl', 'X-FORWARDED-PROTO': 'https', 'X-FORWARDED-SSL': 'on'}
+  forwarded_allow_ips: ['127.0.0.1']
+  accesslog: None
+  disable_redirect_access_to_syslog: False
+  access_log_format: %(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"
+  errorlog: -
+  loglevel: debug
+  capture_output: False
+  logger_class: gunicorn.glogging.Logger
+  logconfig: None
+  logconfig_dict: {}
+  syslog_addr: udp://localhost:514
+  syslog: False
+  syslog_prefix: None
+  syslog_facility: user
+  enable_stdio_inheritance: False
+  statsd_host: None
+  dogstatsd_tags: 
+  statsd_prefix: 
+  proc_name: None
+  default_proc_name: app.main:app
+  pythonpath: None
+  paste: None
+  on_starting: <function OnStarting.on_starting at 0x7f49109858c8>
+  on_reload: <function OnReload.on_reload at 0x7f49109859d8>
+  when_ready: <function WhenReady.when_ready at 0x7f4910985ae8>
+  pre_fork: <function Prefork.pre_fork at 0x7f4910985bf8>
+  post_fork: <function Postfork.post_fork at 0x7f4910985d08>
+  post_worker_init: <function PostWorkerInit.post_worker_init at 0x7f4910985e18>
+  worker_int: <function WorkerInt.worker_int at 0x7f4910985f28>
+  worker_abort: <function WorkerAbort.worker_abort at 0x7f491085a0d0>
+  pre_exec: <function PreExec.pre_exec at 0x7f491085a1e0>
+  pre_request: <function PreRequest.pre_request at 0x7f491085a2f0>
+  post_request: <function PostRequest.post_request at 0x7f491085a378>
+  child_exit: <function ChildExit.child_exit at 0x7f491085a488>
+  worker_exit: <function WorkerExit.worker_exit at 0x7f491085a598>
+  nworkers_changed: <function NumWorkersChanged.nworkers_changed at 0x7f491085a6a8>
+  on_exit: <function OnExit.on_exit at 0x7f491085a7b8>
+  proxy_protocol: False
+  proxy_allow_ips: ['127.0.0.1']
+  keyfile: None
+  certfile: None
+  ssl_version: 2
+  cert_reqs: 0
+  ca_certs: None
+  suppress_ragged_eofs: True
+  do_handshake_on_connect: False
+  ciphers: None
+  raw_paste_global_conf: []
+  strip_header_spaces: False
+[2026-05-22 11:09:52 +0300] [491765] [INFO] Starting gunicorn 20.1.0
+[2026-05-22 11:09:52 +0300] [491765] [DEBUG] Arbiter booted
+[2026-05-22 11:09:52 +0300] [491765] [INFO] Listening at: http://0.0.0.0:8000 (491765)
+[2026-05-22 11:09:52 +0300] [491765] [INFO] Using worker: uvicorn.workers.UvicornWorker
+[2026-05-22 11:09:52 +0300] [491769] [INFO] Booting worker with pid: 491769
+[2026-05-22 11:09:53 +0300] [491765] [DEBUG] 1 workers
+[2026-05-22 11:09:53 +0300] [491769] [INFO] Started server process [491769]
+[2026-05-22 11:09:53 +0300] [491769] [INFO] Waiting for application startup.
+[2026-05-22 11:09:53 +0300] [491769] [INFO] Application startup complete.
+{"error": "(cx_Oracle.DatabaseError) ORA-12545: Connect failed because target host or object does not exist\n(Background on this error at: https://sqlalche.me/e/14/4xp6)", "request_id": "TEST-REQ-002", "event": "db_query_error", "logger": "app.services.db_service", "level": "error", "timestamp": "2026-05-22T08:10:49.237961Z"}
+[2026-05-22 11:10:54 +0300] [491765] [CRITICAL] WORKER TIMEOUT (pid:491769)
+[2026-05-22 11:10:55 +0300] [491765] [WARNING] Worker with pid 491769 was terminated due to signal 9
+[2026-05-22 11:10:55 +0300] [491822] [INFO] Booting worker with pid: 491822
+[2026-05-22 11:10:55 +0300] [491822] [INFO] Started server process [491822]
+[2026-05-22 11:10:55 +0300] [491822] [INFO] Waiting for application startup.
+[2026-05-22 11:10:55 +0300] [491822] [INFO] Application startup complete.

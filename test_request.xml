@@ -12,7 +12,7 @@
     <TransactionStart>
         <Amount>1550</Amount>
         <TransactionId>ERIP-TRX-999</TransactionId>
-        <AuthorizationType>password</AuthorizationType>
         <ServiceTrxId>SVC-999</ServiceTrxId>
+        <AuthorizationType>password</AuthorizationType>
     </TransactionStart>
 </ServiceProvider_Request>
