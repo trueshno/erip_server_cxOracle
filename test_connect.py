@@ -47,10 +47,9 @@ try:
         print("  (Нет данных для отображения)")
     else:
         for row in rows:
-            # Декодирование байтов в строку, если нужно (для NLS_LANG)
             print(f"  ID: {row[0]}, Req: {row[1]}, Amt: {row[2]}, Status: {row[3]}, Date: {row[4]}")
 
-    # 3. Проверка чтения CLOB (частая проблема)
+    # 3. Проверка чтения CLOB
     print("\nCLOB READ TEST:")
     cur.execute("""
         SELECT id, dbms_lob.getlength(error_text) as err_len, dbms_lob.getlength(metadata_json) as meta_len

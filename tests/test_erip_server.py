@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 # isort: skip_file
 # pylint: disable=unused-argument,missing-docstring,line-too-long
-"""
-Тесты для ERIP Server — версия с исправлениями для Pylance
-Python 3.7.2, FastAPI 0.103.2, Pydantic 1.10.13
-"""
 from __future__ import unicode_literals
 
 import sys
@@ -35,15 +31,10 @@ from app.services.db_service import (
     get_stored_response,
     SessionLocal
 )
-# Убрали 'engine' — он может не экспортироваться из db_service
 
 client = TestClient(app)
 
-
-# ============================================================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ для безопасной работы с XML
-# ============================================================================
-
 def safe_find_text(element: Optional[ET.Element], path: str, default: str = "") -> str:
     """Безопасное получение текста из XML-элемента"""
     if element is None:
@@ -68,11 +59,7 @@ def safe_find_element(element: Optional[ET.Element], path: str) -> Optional[ET.E
         return None
     return element.find(path)
 
-
-# ============================================================================
 # ФИКСТУРЫ
-# ============================================================================
-
 @pytest.fixture(scope="function")
 def sample_serviceinfo_request() -> bytes:
     return b'''<?xml version="1.0" encoding="windows-1251"?>
@@ -126,7 +113,7 @@ def mock_account_data() -> Dict[str, Any]:
         "street": "П***а",
         "house": "10",
         "apartment": "100",
-        "info_line": "Задолженность по оплате за квартиру"
+        "info_line": "Задолженность"
     }
 
 
@@ -142,10 +129,7 @@ def mock_db_session():
         mock_db.close.assert_called()
 
 
-# ============================================================================
 # ТЕСТЫ XML-ГЕНЕРАТОРОВ
-# ============================================================================
-
 class TestXmlGenerators(object):
 
     def test_build_serviceinfo_response_structure(self, mock_account_data: Dict[str, Any]) -> None:
@@ -201,11 +185,7 @@ class TestXmlGenerators(object):
         error_line = safe_find_text(error, 'ErrorLine')
         assert error_line == error_msg
 
-
-# ============================================================================
 # ТЕСТЫ PARSE_XML
-# ============================================================================
-
 class TestXmlParser(object):
 
     def test_parse_serviceinfo_request(self, sample_serviceinfo_request: bytes) -> None:
@@ -223,10 +203,7 @@ class TestXmlParser(object):
         assert data.get('erip_trx_id') == '6180433'
 
 
-# ============================================================================
 # ТЕСТЫ ENDPOINT (исправленные типы)
-# ============================================================================
-
 class TestErpEndpoint(object):
 
     @patch('app.services.db_service.get_stored_response')
@@ -244,7 +221,6 @@ class TestErpEndpoint(object):
         mock_get_acc.return_value = mock_account_data
         mock_save.return_value = "12345678"
         
-        # Исправление: передаём XML как строку, не bytes в dict
         response = client.post(
             "/",
             data={"XML": sample_serviceinfo_request.decode('windows-1251')},
@@ -253,7 +229,7 @@ class TestErpEndpoint(object):
         
         assert response.status_code == 200
         
-        # Безопасная проверка Content-Type
+        # Проверка Content-Type
         content_type = response.headers.get("content-type") or ""
         assert "windows-1251" in content_type.lower() or "xml" in content_type.lower()
         
@@ -313,11 +289,7 @@ class TestErpEndpoint(object):
         error_line = safe_find_text(root, './/Error/ErrorLine')
         assert error_line and ("not found" in error_line.lower() or "Account" in error_line)
 
-
-# ============================================================================
 # ТЕСТЫ БИЗНЕС-ЛОГИКИ
-# ============================================================================
-
 class TestDbService(object):
 
     @patch('app.services.db_service.SessionLocal')
@@ -344,10 +316,7 @@ class TestDbService(object):
         assert 8 <= len(result) <= 12
 
 
-# ============================================================================
 # ТЕСТЫ СПЕЦИФИКАЦИИ ЕРИП
-# ============================================================================
-
 class TestEripSpecificationCompliance(object):
 
     def test_datetime_format_yyyymmddhhmmss(self) -> None:
@@ -371,13 +340,10 @@ class TestEripSpecificationCompliance(object):
 
     def test_terminal_types_table_3_1_1(self) -> None:
         valid_types = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}
-        assert 5 in valid_types  # РКС из примеров
+        assert 5 in valid_types 
 
 
-# ============================================================================
 # ПАРАМЕТРИЗОВАННЫЕ ТЕСТЫ
-# ============================================================================
-
 @pytest.mark.parametrize("amount_kopeks,expected_byn", [
     ("250000", 2500.00),
     ("3021", 30.21),

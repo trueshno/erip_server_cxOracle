@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, CLOB, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Float, Date, CLOB
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -10,23 +10,16 @@ class Transaction(Base):
     personal_account = Column("personal_account", String(32), nullable=False)
     amount = Column("amount", Float, default=0.0)
     currency = Column("currency", String(3), default="933")
-    service_trx_id = Column("service_trx_id", String(12), unique=True, nullable=False)
+    service_trx_id = Column("service_trx_id", String(8), unique=True, nullable=False)
     transaction_id = Column("transaction_id", String(32))
-    erip_transaction_id = Column("erip_transaction_id", String(32))
-    request_type = Column("request_type", String(20))
     status = Column("status", String(20), default="pending")
     error_code = Column("error_code", Integer)
     error_text = Column("error_text", CLOB)
     created_at = Column("created_at", Date)
-    processed_at = Column("processed_at", TIMESTAMP)
+    processed_at = Column("processed_at", Date)
     metadata_json = Column("metadata_json", CLOB)
-    # Ваше согласованное поле для идемпотентности
-    response_xml = Column("response_xml", CLOB)
-    # Дополнительные поля из ALTER
-    terminal_id = Column("terminal_id", String(30))
-    terminal_type = Column("terminal_type", Integer)
-    agent_code = Column("agent_code", Integer)
-    auth_type = Column("auth_type", String(10))
+    auth_type = Column("auth_type", String(50))
+    terminal_type = Column("terminal_type", String(50))
 
 class Account(Base):
     __tablename__ = "accounts"

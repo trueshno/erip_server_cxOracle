@@ -1,38 +1,35 @@
-import xml.etree.ElementTree as ET
-import structlog
-from typing import Optional, Dict
-
-logger = structlog.get_logger()
-
-def parse_erip_xml(xml_bytes: bytes) -> Optional[Dict]:
-    try:
-        root = ET.fromstring(xml_bytes.decode("windows-1251"))
-        req_type = root.findtext("RequestType")
-        if not req_type:
-            return None
-
-        data: Dict[str, str] = {
-            "request_type": req_type,
-            "request_id": root.findtext("RequestId") or "",
-            "personal_account": root.findtext("PersonalAccount") or "",
-            "currency": root.findtext("Currency") or "933",
-        }
-
-        if req_type == "ServiceInfo":
-            debt_el = root.find(".//Amount/Debt")
-            data["debt"] = debt_el.text.strip() if debt_el is not None else None
-            
-        elif req_type == "TransactionStart":
-            amount_el = root.find(".//TransactionStart/Amount")
-            amount_raw = amount_el.text.strip() if amount_el is not None else "0"
-            data["amount_raw"] = amount_raw
-            data["erip_trx_id"] = root.findtext(".//TransactionStart/TransactionId") or "0"
-            # Конвертация копеек в BYN для БД
-            try:
-                data["amount_byn"] = int(amount_raw) / 100.0
-            except ValueError:
-                data["amount_byn"] = 0.0
-        return data
-    except Exception as e:
-        logger.error("xml_parse_failed", error=str(e))
-        return None
+def parse_xml(xml_str: str) -> dict:
+    """Парсит XML из строки (уже декодированной)"""
+    import xml.etree.ElementTree as ET
+    import re
+    
+    # Удаляем BOM если есть
+    if xml_str.startswith('\ufeff'):
+        xml_str = xml_str[1:]
+    
+    root = ET.fromstring(xml_str.strip())
+    
+    terminal_elem = root.find(".//Terminal")
+    data = {
+        "request_type": root.findtext("RequestType"),
+        "request_id": root.findtext("RequestId"),
+        "personal_account": root.findtext("PersonalAccount"),
+        "currency": root.findtext("Currency"),
+        "terminal_id": root.findtext("Terminal"),
+        "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
+    }
+    
+    if data["request_type"] == "ServiceInfo":
+        agent_el = root.find(".//ServiceInfo/Agent")
+        data["agent"] = agent_el.text.strip() if agent_el is not None and agent_el.text else None
+    elif data["request_type"] == "TransactionStart":
+        amount_el = root.find(".//TransactionStart/Amount")
+        amount_raw = amount_el.text.strip() if amount_el is not None and amount_el.text else "0"
+        try:
+            data["amount_byn"] = int(amount_raw) / 100.0
+        except ValueError:
+            data["amount_byn"] = 0.0
+        data["erip_trx_id"] = root.findtext(".//TransactionStart/TransactionId")
+        data["auth_type"] = root.findtext(".//TransactionStart/AuthorizationType")
+    
+    return data

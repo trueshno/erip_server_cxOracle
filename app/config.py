@@ -7,10 +7,10 @@ load_dotenv()
 dsn = cx_Oracle.makedsn(
     host=os.getenv("ORACLE_HOST", "192.168.100.64"),
     port=int(os.getenv("ORACLE_PORT", 1521)),
-    service_name=os.getenv("ORACLE_SERVICE_NAME")  # Попробуем service_name
+    service_name=os.getenv("ORACLE_SERVICE_NAME")
 )
 
-# сли service_name не работает, то sid
+# Если service_name не работает, то sid
 if os.getenv("ORACLE_USE_SID", "false").lower() == "true":
     dsn = cx_Oracle.makedsn(
         host=os.getenv("ORACLE_HOST", "192.168.100.64"),
