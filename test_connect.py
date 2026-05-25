@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
 import os, sys
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
+os.environ.setdefault("NLS_LANG", "RUSSIAN_RUSSIA.UTF8")
 
 try:
     import cx_Oracle
@@ -12,7 +12,6 @@ try:
         int(os.getenv("ORACLE_PORT", 1521)),
         service_name=os.getenv("ORACLE_SERVICE_NAME")
     )
-    print(f"✓ DSN formed: {dsn}")
     
     conn = cx_Oracle.connect(
         user=os.getenv("ORACLE_USER"),
@@ -22,42 +21,58 @@ try:
     print("✓ CONNECT SUCCESS")
     
     cur = conn.cursor()
-    cur.execute("SELECT SYSDATE, user FROM dual")
-    row = cur.fetchone()
-    print(f"✓ DB Time: {row[0]}, User: {row[1]}")
     
+    # 1. Проверка количества строк в таблицах
+    tables_to_check = ['TRANSACTIONS', 'ACCOUNTS', 'TRANSACTION_INFO_LINES']
+    print("\nROW COUNTS:")
+    for table in tables_to_check:
+        cur.execute(f"SELECT COUNT(*) FROM {table}")
+        count = cur.fetchone()[0]
+        status = "ПУСТАЯ" if count == 0 else f"{count} строк"
+        print(f"  {table}: {status}")
+
+ # 2. Попытка выбрать реальные данные (последние 5 записей)
+    print("\nSAMPLE DATA (TRANSACTIONS):")
     cur.execute("""
-        SELECT table_name FROM user_tables 
-        WHERE table_name IN ('TRANSACTIONS', 'ACCOUNTS', 'TRANSACTION_INFO_LINES')
+        SELECT id, erip_request_id, amount, status, created_at 
+        FROM (
+            SELECT id, erip_request_id, amount, status, created_at 
+            FROM transactions 
+            ORDER BY created_at DESC
+        )
+        WHERE ROWNUM <= 5
     """)
-    tables = [r[0] for r in cur.fetchall()]
-    print(f"✓ Tables found: {tables}")
-    
+    rows = cur.fetchall()
+    if not rows:
+        print("  (Нет данных для отображения)")
+    else:
+        for row in rows:
+            # Декодирование байтов в строку, если нужно (для NLS_LANG)
+            print(f"  ID: {row[0]}, Req: {row[1]}, Amt: {row[2]}, Status: {row[3]}, Date: {row[4]}")
+
+    # 3. Проверка чтения CLOB (частая проблема)
+    print("\nCLOB READ TEST:")
     cur.execute("""
-        SELECT column_name, data_type, data_length 
-        FROM user_tab_columns 
-        WHERE table_name = 'TRANSACTIONS' 
-        ORDER BY column_id
+        SELECT id, dbms_lob.getlength(error_text) as err_len, dbms_lob.getlength(metadata_json) as meta_len
+        FROM (
+            SELECT id, error_text, metadata_json
+            FROM transactions
+            WHERE error_text IS NOT NULL OR metadata_json IS NOT NULL
+            ORDER BY id
+        )
+        WHERE ROWNUM <= 1
     """)
-    print("\n✓ TRANSACTIONS columns:")
-    for col in cur.fetchall():
-        print(f"  {col[0]}: {col[1]}({col[2]})")
-    
+    lob_row = cur.fetchone()
+    if lob_row:
+        print(f"  CLOB доступен. ID: {lob_row[0]}, ErrorTextLen: {lob_row[1]}, MetaLen: {lob_row[2]}")
+    else:
+        print("  В таблице нет записей с заполненными CLOB полями для проверки")
+
     conn.close()
-    print("\n✓ ALL TESTS PASSED")
+    print("\n✓ ALL EXTENDED TESTS PASSED")
     
-except cx_Oracle.DatabaseError as e:
-    error, = e.args
-    print(f"✗ ORACLE ERROR: {error.code} - {error.message}")
-    if error.code == 12545:
-        print("  → Проверьте: service_name vs sid, правильность имени сервиса")
-    elif error.code == 1017:
-        print("  → Проверьте: логин/пароль (ORACLE_USER / ORACLE_PASS)")
-    elif error.code == 12514:
-        print("  → Проверьте: имя сервиса 'orcl200' зарегистрировано в listener.ora")
-    sys.exit(1)
 except Exception as e:
-    print(f"✗ PYTHON ERROR: {type(e).__name__}: {e}")
+    print(f"✗ ERROR: {type(e).__name__}: {e}")
     import traceback
     traceback.print_exc()
     sys.exit(1)
