@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ServiceProvider_Request>
+  <Version>1</Version>
+  <RequestType>ServiceInfo</RequestType>
+  <DateTime>20200601153456</DateTime>
+  <Terminal Type="5">55411</Terminal>
+  <ServiceNo>1</ServiceNo>
+  <PersonalAccount>123</PersonalAccount>
+  <Currency>933</Currency>
+  <RequestId>9221</RequestId>
+  <ServiceInfo>
+    <Agent>999</Agent>
+    <Amount>
+      <Debt>30,21</Debt>  <!-- Сумма от клиента (игнорировать) -->
+    </Amount>
+  </ServiceInfo>
+</ServiceProvider_Request>

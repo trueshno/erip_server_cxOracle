@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.insert(0, '/opt/erip_server_cxOracle')
 
-# Пытаемся импортировать dotenv, если используется
 try:
     from dotenv import load_dotenv
     load_dotenv('/opt/erip_server_cxOracle/.env')
@@ -16,7 +15,6 @@ print(f"ORACLE_USER: '{os.environ.get('ORACLE_USER')}'")
 print(f"ORACLE_PASS: '{os.environ.get('ORACLE_PASS')}'")
 print(f"LD_LIBRARY_PATH: '{os.environ.get('LD_LIBRARY_PATH')}'")
 
-# Проверка подключения с теми данными, которые видит скрипт
 dsn = os.environ.get('ORACLE_DSN')
 user = os.environ.get('ORACLE_USER')
 pwd = os.environ.get('ORACLE_PASS')
