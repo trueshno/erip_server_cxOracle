@@ -30,47 +30,73 @@ def _escape_xml(text: str) -> str:
             .replace('"', "&quot;")
             .replace("'", "&apos;"))
 
-def build_serviceinfo_response(acc: dict) -> bytes: # type: ignore[call-arg]
-    """
-    Генерация ответа ServiceInfo в windows-1251.
-    acc: dict из get_account_info() с полями debt, editable, surname, city, etc.
-    """
-    debt = acc.get("debt", "0,00")
+def build_serviceinfo_response(acc: dict) -> bytes:
+    """Генерация ответа ServiceInfo в windows-1251. Гарантирует возврат bytes."""
+    if not acc:
+        xml = (
+            '<?xml version="1.0" encoding="windows-1251"?>\n'
+            '<ServiceProvider_Response>\n'
+            '  <ServiceInfo>\n'
+            '    <Amount Editable="N" MinAmount="0,01" MaxAmount="100000,00">\n'
+            '      <Debt>0,00</Debt>\n'
+            '    </Amount>\n'
+            '    <Info>\n'
+            '      <InfoLine>Информация недоступна</InfoLine>\n'
+            '    </Info>\n'
+            '  </ServiceInfo>\n'
+            '</ServiceProvider_Response>'
+        )
+        return xml.encode("windows-1251", errors="replace")
     
-    # Маскировка данных (требование протокола)
-    surname = _mask_name(acc.get("surname", ""))
-    firstname = acc.get("firstname", "") 
-    patronymic = acc.get("patronymic", "")
-    city = _mask_city(acc.get("city", ""))
-    street = _mask_street(acc.get("street", ""))
+    debt = acc.get("debt") or "0,00"
+    editable = acc.get("editable") or "Y"
+    min_amount = acc.get("min_amount") or "0,01"
+    max_amount = acc.get("max_amount") or "100000,00"
+    
+    surname = acc.get("surname") or ""
+    firstname = acc.get("firstname") or ""
+    patronymic = acc.get("patronymic") or ""
+    city = acc.get("city") or ""
+    street = acc.get("street") or ""
+    house = acc.get("house") or ""
+    apartment = acc.get("apartment") or ""
+    
+    def mask(val: str) -> str:
+        if not val or len(val) < 2:
+            return val or ""
+        return val[0] + "***" + val[-1]
     
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
         '  <ServiceInfo>\n'
-        f'    <Amount Editable="{acc.get("editable", "Y")}" '
-        f'MinAmount="{acc.get("min_amount", "0,01")}" '
-        f'MaxAmount="{acc.get("max_amount", "100000,00")}">\n'
-        f'      <Debt>{_escape_xml(debt)}</Debt>\n'
+        f'    <Amount Editable="{editable}" MinAmount="{min_amount}" MaxAmount="{max_amount}">\n'
+        f'      <Debt>{debt}</Debt>\n'
         '    </Amount>\n'
         '    <Name>\n'
-        f'      <Surname>{_escape_xml(surname)}</Surname>\n'
-        f'      <FirstName>{_escape_xml(firstname)}</FirstName>\n'
-        f'      <Patronymic>{_escape_xml(patronymic)}</Patronymic>\n'
+        f'      <Surname>{mask(surname)}</Surname>\n'
+        f'      <FirstName>{firstname}</FirstName>\n'
+        f'      <Patronymic>{patronymic}</Patronymic>\n'
         '    </Name>\n'
         '    <Address>\n'
-        f'      <City>{_escape_xml(city)}</City>\n'
-        f'      <Street>{_escape_xml(street)}</Street>\n'
-        f'      <House>{_escape_xml(acc.get("house", ""))}</House>\n'
-        f'      <Apartment>{_escape_xml(acc.get("apartment", ""))}</Apartment>\n'
+        f'      <City>{mask(city)}</City>\n'
+        f'      <Street>{mask(street)}</Street>\n'
+        f'      <House>{house}</House>\n'
+        f'      <Apartment>{apartment}</Apartment>\n'
         '    </Address>\n'
         '    <Info>\n'
-        '      <InfoLine>Задолженность по оплате за квартиру</InfoLine>\n'
-        f'      <InfoLine>Составляет: {_escape_xml(debt)}</InfoLine>\n'
+        '      <InfoLine>Задолженность по оплате: </InfoLine>\n'
+        f'      <InfoLine>Составляет: {debt}</InfoLine>\n'
         '    </Info>\n'
         '  </ServiceInfo>\n'
         '</ServiceProvider_Response>'
     )
+    
+    try:
+        return xml.encode("windows-1251", errors="replace")
+    except Exception as e:
+        fallback = '<?xml version="1.0" encoding="windows-1251"?><ServiceProvider_Response><ServiceInfo><Amount><Debt>0,00</Debt></Amount><Info><InfoLine>Error</InfoLine></Info></ServiceInfo></ServiceProvider_Response>'
+        return fallback.encode("windows-1251", errors="replace")
     
 def build_transactionstart_response(svc_trx_id: str) -> bytes:
     """

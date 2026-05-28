@@ -1,4 +1,5 @@
 import os, re, secrets
+os.environ.setdefault("NLS_LANG", "RUSSIAN_RUSSIA.CL8MSWIN1251")
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
 
 from fastapi import FastAPI, Response, Form, Request
@@ -85,7 +86,6 @@ async def erip_endpoint(request: Request):
     form = await request.form()
     XML = form.get("XML")
     
-    # === Обработка UploadFile (когда отправляют @файл) ===
     from starlette.datastructures import UploadFile
     
     xml_content: str = ""
