@@ -13,7 +13,7 @@ def get_stored_response(request_id: str) -> Optional[str]:
     """Возвращает сохранённый XML из metadata_json (идемпотентность)"""
     db = SessionLocal()
     try:
-        row = db.query(Transaction).filter(Transaction.erip_request_id == request_id).first()
+        row = db.query(Transaction).filter(Transaction.erip_request_id == request_id).first() # type: ignore[call-arg]
         if row and row.metadata_json:
             try:
                 meta_raw = row.metadata_json
@@ -33,7 +33,7 @@ def get_stored_response(request_id: str) -> Optional[str]:
 def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
     db = SessionLocal()
     try:
-        acc = db.query(Account).filter(Account.account_number == personal_account).first()
+        acc = db.query(Account).filter(Account.account_number == personal_account).first() # type: ignore[call-arg]
         if not acc:
             return None
         

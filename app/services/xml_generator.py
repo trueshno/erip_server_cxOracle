@@ -30,7 +30,7 @@ def _escape_xml(text: str) -> str:
             .replace('"', "&quot;")
             .replace("'", "&apos;"))
 
-def build_serviceinfo_response(acc: dict) -> bytes:
+def build_serviceinfo_response(acc: dict) -> bytes: # type: ignore[call-arg]
     """
     Генерация ответа ServiceInfo в windows-1251.
     acc: dict из get_account_info() с полями debt, editable, surname, city, etc.
@@ -39,7 +39,7 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     
     # Маскировка данных (требование протокола)
     surname = _mask_name(acc.get("surname", ""))
-    firstname = acc.get("firstname", "")  # имя не маскируется в примере
+    firstname = acc.get("firstname", "") 
     patronymic = acc.get("patronymic", "")
     city = _mask_city(acc.get("city", ""))
     street = _mask_street(acc.get("street", ""))
@@ -72,5 +72,34 @@ def build_serviceinfo_response(acc: dict) -> bytes:
         '</ServiceProvider_Response>'
     )
     
-    # КРИТИЧНО: кодируем в windows-1251 ПЕРЕД возвратом
+def build_transactionstart_response(svc_trx_id: str) -> bytes:
+    """
+    Генерация ответа TransactionStart в windows-1251.
+    svc_trx_id: идентификатор транзакции сервиса
+    """
+    xml = (
+        '<?xml version="1.0" encoding="windows-1251"?>\n'
+        '<ServiceProvider_Response>\n'
+        '  <TransactionStart>\n'
+        f'    <ServiceTransactionId>{svc_trx_id}</ServiceTransactionId>\n'
+        '    <Status>OK</Status>\n'
+        '  </TransactionStart>\n'
+        '</ServiceProvider_Response>'
+    )
+    return xml.encode("windows-1251", errors="replace")
+
+
+def build_error_response(error_message: str) -> bytes:
+    """
+    Генерация ответа с ошибкой в windows-1251.
+    error_message: текст ошибки
+    """
+    xml = (
+        '<?xml version="1.0" encoding="windows-1251"?>\n'
+        '<ServiceProvider_Response>\n'
+        '  <Error>\n'
+        f'    <Message>{_escape_xml(error_message)}</Message>\n'
+        '  </Error>\n'
+        '</ServiceProvider_Response>'
+    )
     return xml.encode("windows-1251", errors="replace")
