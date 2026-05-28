@@ -142,6 +142,7 @@ async def erip_endpoint(request: Request):
                 agent_code=int(data.get("agent", 0) or 0)
             )
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
+            # return Response(content=resp_xml, media_type="text/xml; charset=utf-8", status_code=200)
 
         elif req_type == "TransactionStart":
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])

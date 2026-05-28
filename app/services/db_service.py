@@ -31,31 +31,34 @@ def get_stored_response(request_id: str) -> Optional[str]:
 
 
 def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
-    """Получает данные счёта из accounts"""
     db = SessionLocal()
     try:
         acc = db.query(Account).filter(Account.account_number == personal_account).first()
         if not acc:
             return None
+        
+        # Форматируем числа с запятой (требование ЕРИП)
+        def fmt(val: float) -> str:
+            return f"{val:.2f}".replace(".", ",") if val is not None else "0,00"
+        
         return {
-            "debt": f"{acc.debt_amount:.2f}".replace(".", ",") if acc.debt_amount else "0,00",
+            "debt": fmt(acc.debt_amount),
             "editable": acc.editable_flag or "Y",
-            "min_amount": f"{acc.min_amount:.2f}".replace(".", ",") if acc.min_amount else "0,01",
-            "max_amount": f"{acc.max_amount:.2f}".replace(".", ",") if acc.max_amount else "100000,00",
-            "surname": acc.holder_surname or "И***в",
-            "firstname": acc.holder_firstname or "Иван",
-            "patronymic": acc.holder_patronymic or "Иванович",
-            "city": acc.city or "М***к",
-            "street": acc.street or "П***а",
-            "house": acc.house or "10",
-            "apartment": acc.apartment or "100"
+            "min_amount": fmt(acc.min_amount),
+            "max_amount": fmt(acc.max_amount),
+            "surname": acc.holder_surname or "",
+            "firstname": acc.holder_firstname or "",
+            "patronymic": acc.holder_patronymic or "",
+            "city": acc.city or "",
+            "street": acc.street or "",
+            "house": acc.house or "",
+            "apartment": acc.apartment or ""
         }
     except Exception as e:
         logger.error("db_account_query_error", error=str(e))
         return None
     finally:
         db.close()
-
 
 def save_transaction(
     req_id: str,
@@ -103,7 +106,7 @@ def save_transaction(
             created_at=datetime.now(),  # type: ignore[call-arg]
             auth_type=(auth_type[:50] if auth_type else None),  # type: ignore[call-arg]
             terminal_type=(terminal_type[:50] if terminal_type else None),  # type: ignore[call-arg]
-            metadata_json=json.dumps(metadata, ensure_ascii=False)  # type: ignore[call-arg]
+            metadata_json = json.dumps(metadata, ensure_ascii=False)  # type: ignore[call-arg]
         )
 
         db.add(trx)
