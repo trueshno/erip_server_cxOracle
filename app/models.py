@@ -12,6 +12,8 @@ class Transaction(Base):
     currency = Column("currency", String(3), default="933")
     service_trx_id = Column("service_trx_id", String(8), unique=True, nullable=False)
     transaction_id = Column("transaction_id", String(32))
+    request_type = Column("request_type", String(20))
+    erip_transaction_id = Column("erip_transaction_id", String(32))
     status = Column("status", String(20), default="pending")
     error_code = Column("error_code", Integer)
     error_text = Column("error_text", CLOB)

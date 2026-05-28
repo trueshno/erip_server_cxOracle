@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*-
 import structlog
 import secrets
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
+from sqlalchemy import or_
+
 from app.db import SessionLocal
 from app.models import Transaction, Account
 
@@ -13,7 +16,10 @@ def get_stored_response(request_id: str) -> Optional[str]:
     """Возвращает сохранённый XML из metadata_json (идемпотентность)"""
     db = SessionLocal()
     try:
-        row = db.query(Transaction).filter(Transaction.erip_request_id == request_id).first() # type: ignore[call-arg]
+        row = db.query(Transaction).filter(
+            Transaction.erip_request_id == request_id
+        ).first()  # type: ignore[call-arg]
+        
         if row and row.metadata_json:
             try:
                 meta_raw = row.metadata_json
@@ -30,15 +36,64 @@ def get_stored_response(request_id: str) -> Optional[str]:
         db.close()
 
 
-def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
+def update_transaction_status(
+    erip_trx_id: Optional[str], 
+    service_trx_id: Optional[str], 
+    status: str, 
+    error_text: Optional[str] = None
+) -> bool:
+    """Обновляет статус транзакции. Параметры ID могут быть None."""
     db = SessionLocal()
     try:
-        acc = db.query(Account).filter(Account.account_number == personal_account).first() # type: ignore[call-arg]
+        # Если оба ID None — ничего не делаем
+        if not erip_trx_id and not service_trx_id:
+            logger.warning("no_ids_provided_for_update")
+            return False
+            
+        # Фильтр: ищем по любому из предоставленных ID
+        filters = []
+        if erip_trx_id:
+            filters.append(Transaction.erip_transaction_id == erip_trx_id)
+        if service_trx_id:
+            filters.append(Transaction.service_trx_id == service_trx_id)
+        
+        trx = db.query(Transaction).filter(or_(*filters)).first() # type: ignore[call-arg]
+        
+        if not trx:
+            logger.warning("transaction_not_found_for_update", 
+                          erip_trx_id=erip_trx_id, service_trx_id=service_trx_id)
+            return False
+        
+        trx.status = status
+        trx.processed_at = datetime.now()
+        if error_text:
+            trx.error_text = error_text[:4000] if len(error_text) > 4000 else error_text
+        
+        db.commit()
+        logger.info("transaction_status_updated", 
+                   erip_trx_id=erip_trx_id, service_trx_id=service_trx_id, new_status=status)
+        return True
+    except Exception as e:
+        db.rollback()
+        logger.error("db_update_error", error=str(e), erip_trx_id=erip_trx_id)
+        return False
+    finally:
+        db.close()
+
+
+def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
+    """Получает данные счёта из таблицы accounts"""
+    db = SessionLocal()
+    try:
+        acc = db.query(Account).filter(
+            Account.account_number == personal_account
+        ).first()  # type: ignore[call-arg]
+        
         if not acc:
             return None
         
         # Форматируем числа с запятой (требование ЕРИП)
-        def fmt(val: float) -> str:
+        def fmt(val: Optional[float]) -> str:
             return f"{val:.2f}".replace(".", ",") if val is not None else "0,00"
         
         return {
@@ -60,6 +115,7 @@ def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
     finally:
         db.close()
 
+
 def save_transaction(
     req_id: str,
     req_type: str,
@@ -80,10 +136,11 @@ def save_transaction(
     """
     db = SessionLocal()
     try:
-        # Генерация 8-значного ID
+        # Генерация 8-значного ID, если не передан
         if svc_trx_id is None:
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
 
+        # Собираем метаданные
         metadata = {
             "request_type": req_type,
             "erip_trx_id": erip_trx_id,
@@ -94,7 +151,7 @@ def save_transaction(
             "response_xml": response_xml  # Для идемпотентности
         }
 
-        # Объект модели.
+        # Создаём объект модели (внутри try!)
         trx = Transaction(
             erip_request_id=req_id,  # type: ignore[call-arg]
             personal_account=account,  # type: ignore[call-arg]
@@ -106,7 +163,10 @@ def save_transaction(
             created_at=datetime.now(),  # type: ignore[call-arg]
             auth_type=(auth_type[:50] if auth_type else None),  # type: ignore[call-arg]
             terminal_type=(terminal_type[:50] if terminal_type else None),  # type: ignore[call-arg]
-            metadata_json = json.dumps(metadata, ensure_ascii=False)  # type: ignore[call-arg]
+            metadata_json=json.dumps(metadata, ensure_ascii=False),  # type: ignore[call-arg]
+            # ← Новые поля:
+            request_type=req_type,  # type: ignore[call-arg]
+            erip_transaction_id=erip_trx_id  # type: ignore[call-arg]
         )
 
         db.add(trx)

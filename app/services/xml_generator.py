@@ -100,7 +100,6 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     
 def build_transactionstart_response(svc_trx_id: str) -> bytes:
     """
-    Генерация ответа TransactionStart в windows-1251.
     svc_trx_id: идентификатор транзакции сервиса
     """
     xml = (
@@ -114,10 +113,36 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
     )
     return xml.encode("windows-1251", errors="replace")
 
+def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes: # type: ignore[call-arg]
+    """
+    success=True → "Задолженность оплачена"
+    success=False → "Оплата аннулирована!"
+    """
+    if custom_lines:
+        info_lines = custom_lines
+    elif success:
+        info_lines = [
+            "Задолженность оплачена"
+        ]
+    else:
+        info_lines = ["Оплата аннулирована!"]
+    
+    lines_xml = "\n".join(f"      <InfoLine>{_escape_xml(line)}</InfoLine>" for line in info_lines)
+    
+    xml = (
+        '<?xml version="1.0" encoding="windows-1251"?>\n'
+        '<ServiceProvider_Response>\n'
+        '  <TransactionResult>\n'
+        '    <Info>\n'
+        f'{lines_xml}\n'
+        '    </Info>\n'
+        '  </TransactionResult>\n'
+        '</ServiceProvider_Response>'
+    )
+    return xml.encode("windows-1251", errors="replace")
 
 def build_error_response(error_message: str) -> bytes:
     """
-    Генерация ответа с ошибкой в windows-1251.
     error_message: текст ошибки
     """
     xml = (

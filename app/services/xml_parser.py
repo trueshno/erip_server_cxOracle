@@ -1,9 +1,7 @@
 def parse_xml(xml_str: str) -> dict:
     """Парсит XML из строки (уже декодированной)"""
     import xml.etree.ElementTree as ET
-    import re
     
-    # Удаляем BOM если есть
     if xml_str.startswith('\ufeff'):
         xml_str = xml_str[1:]
     
@@ -19,10 +17,13 @@ def parse_xml(xml_str: str) -> dict:
         "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
     }
     
-    if data["request_type"] == "ServiceInfo":
+    req_type = data["request_type"] 
+    
+    if req_type == "ServiceInfo":
         agent_el = root.find(".//ServiceInfo/Agent")
         data["agent"] = agent_el.text.strip() if agent_el is not None and agent_el.text else None
-    elif data["request_type"] == "TransactionStart":
+        
+    elif req_type == "TransactionStart":
         amount_el = root.find(".//TransactionStart/Amount")
         amount_raw = amount_el.text.strip() if amount_el is not None and amount_el.text else "0"
         try:
@@ -31,5 +32,27 @@ def parse_xml(xml_str: str) -> dict:
             data["amount_byn"] = 0.0
         data["erip_trx_id"] = root.findtext(".//TransactionStart/TransactionId")
         data["auth_type"] = root.findtext(".//TransactionStart/AuthorizationType")
+        
+    elif req_type == "TransactionResult": 
+        data["erip_trx_id"] = root.findtext(".//TransactionResult/TransactionId")
+        data["service_trx_id"] = root.findtext(".//TransactionResult/ServiceProvider_TrxId")
+        error_text_el = root.find(".//TransactionResult/ErrorText")
+        data["error_text"] = error_text_el.text.strip() if error_text_el is not None and error_text_el.text else None
+    
+    elif req_type == "StornStart":
+        data["erip_trx_id"] = root.findtext(".//StornStart/TransactionId")
+        data["service_trx_id"] = root.findtext(".//StornStart/ServiceProvider_TrxId")
+        amount_el = root.find(".//StornStart/Amount")
+        amount_raw = amount_el.text.strip() if amount_el is not None and amount_el.text else "0"
+        data["amount_raw"] = amount_raw 
+        
+    elif req_type == "StornResult":
+        data["erip_trx_id"] = root.findtext(".//StornResult/TransactionId")
+        data["service_trx_id"] = root.findtext(".//StornResult/ServiceProvider_TrxId")
+        amount_el = root.find(".//StornResult/Amount")
+        amount_raw = amount_el.text.strip() if amount_el is not None and amount_el.text else "0"
+        data["amount_raw"] = amount_raw
+        storned_el = root.find(".//StornResult/Storned")
+        data["storned"] = storned_el.text.strip() if storned_el is not None and storned_el.text else None
     
     return data
