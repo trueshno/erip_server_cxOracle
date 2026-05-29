@@ -5,12 +5,10 @@ import json
 from datetime import datetime
 from typing import Optional, Dict, Any
 from sqlalchemy import or_
-
+from app.models import Transaction, Account, TransactionError
 from app.db import SessionLocal
-from app.models import Transaction, Account
 
 logger = structlog.get_logger()
-
 
 def get_stored_response(request_id: str) -> Optional[str]:
     """Возвращает сохранённый XML из metadata_json (идемпотентность)"""
@@ -34,7 +32,6 @@ def get_stored_response(request_id: str) -> Optional[str]:
         return None
     finally:
         db.close()
-
 
 def update_transaction_status(
     erip_trx_id: Optional[str], 
@@ -80,7 +77,6 @@ def update_transaction_status(
     finally:
         db.close()
 
-
 def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
     """Получает данные счёта из таблицы accounts"""
     db = SessionLocal()
@@ -115,7 +111,6 @@ def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
     finally:
         db.close()
 
-
 def save_transaction(
     req_id: str,
     req_type: str,
@@ -132,7 +127,6 @@ def save_transaction(
 ) -> Optional[str]:
     """
     Сохраняет транзакцию в БД.
-    Возвращает service_trx_id (8 цифр) при успехе, None при ошибке.
     """
     db = SessionLocal()
     try:
@@ -148,10 +142,10 @@ def save_transaction(
             "terminal_type": terminal_type,
             "agent_code": agent_code,
             "auth_type": auth_type,
-            "response_xml": response_xml  # Для идемпотентности
+            "response_xml": response_xml 
         }
 
-        # Создаём объект модели (внутри try!)
+        # Объект модели
         trx = Transaction(
             erip_request_id=req_id,  # type: ignore[call-arg]
             personal_account=account,  # type: ignore[call-arg]

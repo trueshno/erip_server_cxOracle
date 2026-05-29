@@ -45,19 +45,14 @@ def _detect_xml_encoding(xml_input) -> str:
 
 
 def parse_xml(xml_input) -> dict:
-    """Универсальный парсер: принимает bytes или str"""
+    """
+    Универсальный парсер: принимает bytes или str.
+    Возвращает dict с распарсенными данными.
+    """
     import xml.etree.ElementTree as ET
-    import re
     
-    # Определяем кодировку
-    if isinstance(xml_input, bytes):
-        snippet = xml_input[:200].decode("ascii", errors="ignore")
-    else:
-        snippet = xml_input[:200]
-    match = re.search(r'encoding=["\']([^"\']+)["\']', snippet)
-    encoding = match.group(1) if match else "windows-1251"
+    encoding = _detect_xml_encoding(xml_input)
     
-    # Декодируем
     if isinstance(xml_input, bytes):
         xml_str = xml_input.decode(encoding, errors="replace")
     elif isinstance(xml_input, str):
@@ -65,7 +60,6 @@ def parse_xml(xml_input) -> dict:
     else:
         raise ValueError(f"Unexpected XML type: {type(xml_input)}")
     
-    # Удаляем BOM
     if xml_str.startswith('\ufeff'):
         xml_str = xml_str[1:]
     
@@ -83,7 +77,7 @@ def parse_xml(xml_input) -> dict:
     
     req_type = data["request_type"]
     
-    # === Парсинг по типу запроса ===
+    # === Парсинг специфичных полей по типу запроса ===
     if req_type == "ServiceInfo":
         agent_el = root.find(".//ServiceInfo/Agent")
         data["agent"] = agent_el.text.strip() if (agent_el is not None and agent_el.text) else None
@@ -118,16 +112,16 @@ def parse_xml(xml_input) -> dict:
         storned_el = root.find(".//StornResult/Storned")
         data["storned"] = storned_el.text.strip() if (storned_el is not None and storned_el.text) else None
     
-    return data
+    return data 
 
 @app.post("/", response_class=Response)
 async def erip_endpoint(request: Request):
+    """Обработчик всех входящих запросов ЕРИП"""
     form = await request.form()
     XML = form.get("XML")
     
     xml_content: str = ""
     
-    # === Обработка UploadFile / bytes / str ===
     if isinstance(XML, UploadFile):
         file_content = await XML.read()
         if isinstance(file_content, bytes):
@@ -149,7 +143,6 @@ async def erip_endpoint(request: Request):
     
     logger.info("request_received", xml_len=len(xml_content))
     
-    # === Парсинг XML ===
     try:
         data = parse_xml(xml_content)
     except Exception as e:
@@ -164,14 +157,12 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Missing required fields"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # === Идемпотентность ===
     stored = get_stored_response(req_id)
     if stored:
         logger.info("idempotent_hit", request_id=req_id)
         return Response(content=stored.encode("windows-1251"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # === Обработка по типу запроса ===
     try:
         if req_type == "ServiceInfo":
             acc = get_account_info(data["personal_account"])
@@ -208,28 +199,27 @@ async def erip_endpoint(request: Request):
                            media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionResult":
-            erip_trx_id = data.get("erip_trx_id")
-            service_trx_id = data.get("service_trx_id")
+            erip_trx_id = data.get("erip_trx_id") or ""
+            service_trx_id = data.get("service_trx_id") or ""
             error_text = data.get("error_text")
             
-            status = "failed" if error_text else "success"
-            update_transaction_status(
-                erip_trx_id or "", 
-                service_trx_id or "", 
-                status, 
-                error_text
-            )            
             if error_text:
-                resp_xml = build_transactionresult_response(False, ["Оплата аннулирована!"])
+                status = "failed"
+                resp_xml = build_transactionresult_response(False)  # "Оплата аннулирована!"
+                logger.info("transaction_result_with_error", request_id=req_id, error=error_text[:100])
             else:
-                resp_xml = build_transactionresult_response(True)
+                status = "success"
+                resp_xml = build_transactionresult_response(True)  # "Задолженность оплачена"
+                logger.info("transaction_result_success", request_id=req_id)
+            
+            update_transaction_status(erip_trx_id, service_trx_id, status, error_text)
             
             return Response(content=resp_xml, 
                            media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type in ("StornStart", "StornResult"):
-            erip_trx_id = data.get("erip_trx_id")
-            service_trx_id = data.get("service_trx_id")
+            erip_trx_id = data.get("erip_trx_id") or ""
+            service_trx_id = data.get("service_trx_id") or ""
             
             if req_type == "StornResult":
                 storned = data.get("storned")
@@ -251,7 +241,6 @@ async def erip_endpoint(request: Request):
         logger.error("processing_error", error=str(e), req_type=req_type, exc_info=True)
         return Response(content=build_error_response("Internal error"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
-
 
 @app.get("/health")
 async def health():

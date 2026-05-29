@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Date, CLOB
 from sqlalchemy.orm import declarative_base
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -41,3 +42,13 @@ class Account(Base):
     apartment = Column("apartment", String(10))
     currency = Column("currency", String(3), default="933")
     service_no = Column("service_no", Integer, default=1)
+
+class TransactionError(Base):
+    __tablename__ = "transaction_errors"
+    
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column("transaction_id", Integer)
+    error_stage = Column("error_stage", String(20), nullable=False)
+    error_code = Column("error_code", Integer)
+    error_text = Column("error_text", CLOB)
+    created_at = Column("created_at", DateTime(timezone=True))

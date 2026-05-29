@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ServiceProvider_Request>
+  <Version>1</Version>
+  <RequestType>TransactionResult</RequestType>
+  <DateTime>20200601154050</DateTime>
+  <Terminal Type="5">55411</Terminal>
+  <ServiceNo>1</ServiceNo>
+  <PersonalAccount>123</PersonalAccount>
+  <Currency>933</Currency>
+  <RequestId>9225</RequestId>
+  <TransactionResult>
+    <TransactionId>ERIP-TRX-999</TransactionId>
+    <ServiceProvider_TrxId>48907436</ServiceProvider_TrxId>
+    <ErrorText>Операция отменена</ErrorText>
+</ServiceProvider_Request>

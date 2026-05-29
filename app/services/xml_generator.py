@@ -2,19 +2,16 @@
 """Генераторы ответов ЕРИП. Возвращают БАЙТЫ в windows-1251."""
 
 def _mask_name(full_name: str) -> str:
-    """Маскирует ФИО по протоколу: Иванов → И***в"""
     if not full_name or len(full_name) < 2:
         return full_name or ""
     return full_name[0] + "***" + full_name[-1]
 
 def _mask_city(city: str) -> str:
-    """Маскирует город: Минск → М***к"""
     if not city or len(city) < 2:
         return city or ""
     return city[0] + "***" + city[-1]
 
 def _mask_street(street: str) -> str:
-    """Маскирует улицу: Пушкина → П***а"""
     if not street or len(street) < 2:
         return street or ""
     return street[0] + "***" + street[-1]
@@ -111,13 +108,10 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
         '  </TransactionStart>\n'
         '</ServiceProvider_Response>'
     )
-    return xml.encode("windows-1251", errors="replace")
+    return xml.encode("windows-1251", errors="replace") 
 
-def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes: # type: ignore[call-arg]
-    """
-    success=True → "Задолженность оплачена"
-    success=False → "Оплата аннулирована!"
-    """
+def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes:
+    """Генерация ответа TransactionResult в windows-1251"""
     if custom_lines:
         info_lines = custom_lines
     elif success:
@@ -125,6 +119,7 @@ def build_transactionresult_response(success: bool, custom_lines: list = None) -
             "Задолженность оплачена"
         ]
     else:
+        # ← ОШИБКА: короткий ответ
         info_lines = ["Оплата аннулирована!"]
     
     lines_xml = "\n".join(f"      <InfoLine>{_escape_xml(line)}</InfoLine>" for line in info_lines)
