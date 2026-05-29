@@ -12,4 +12,5 @@
     <TransactionId>ERIP-TRX-999</TransactionId>
     <ServiceProvider_TrxId>48907436</ServiceProvider_TrxId>
     <ErrorText>Операция отменена</ErrorText>
+  </TransactionResult>
 </ServiceProvider_Request>

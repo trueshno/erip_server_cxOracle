@@ -125,9 +125,7 @@ def save_transaction(
     auth_type: str = "",
     svc_trx_id: Optional[str] = None
 ) -> Optional[str]:
-    """
-    Сохраняет транзакцию в БД.
-    """
+
     db = SessionLocal()
     try:
         # Генерация 8-значного ID, если не передан
