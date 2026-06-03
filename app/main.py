@@ -217,18 +217,17 @@ async def erip_endpoint(request: Request):
             return Response(content=resp_xml, 
                            media_type="text/xml; charset=windows-1251", status_code=200)
 
-        elif req_type in ("StornStart", "StornResult"):
+        elif req_type == "StornStart":
             erip_trx_id = data.get("erip_trx_id") or ""
             service_trx_id = data.get("service_trx_id") or ""
+            amount_raw = data.get("amount_raw", "0")
             
-            if req_type == "StornResult":
-                storned = data.get("storned")
-                if storned == "Y":
-                    update_transaction_status(erip_trx_id, service_trx_id, "storned")
-                elif storned == "N":
-                    update_transaction_status(erip_trx_id, service_trx_id, "storn_failed")
+            logger.info("storn_start_received", 
+                       request_id=req_id,
+                       erip_trx_id=erip_trx_id,
+                       service_trx_id=service_trx_id,
+                       amount=amount_raw)
             
-            # Возвращаем пустой успешный ответ (требование протокола)
             xml = '<?xml version="1.0" encoding="windows-1251"?><ServiceProvider_Response></ServiceProvider_Response>'
             return Response(content=xml.encode("windows-1251"), 
                            media_type="text/xml; charset=windows-1251", status_code=200)
