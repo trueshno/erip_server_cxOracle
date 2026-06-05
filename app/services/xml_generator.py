@@ -141,7 +141,7 @@ def build_transactionresult_response(success: bool, custom_lines: list = None) -
 
 
 def build_error_response(error_message: str) -> bytes:
-    """Генерация ответа с ошибкой в формате ЕРИП"""
+    """Генерация ответа с ошибкой пример 7"""
     lines = error_message.split('\n') if '\n' in error_message else [error_message]
     lines_xml = "\n".join(f"    <ErrorLine>{_escape_xml(line)}</ErrorLine>" for line in lines)
     

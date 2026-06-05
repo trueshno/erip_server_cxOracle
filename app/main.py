@@ -4,35 +4,61 @@ os.environ.setdefault("NLS_LANG", "RUSSIAN_RUSSIA.CL8MSWIN1251")
 os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
 
 from fastapi import FastAPI, Response, Request
+from starlette.middleware.base import BaseHTTPMiddleware
 import structlog
 import xml.etree.ElementTree as ET
 from starlette.datastructures import UploadFile
+
+from app.logging_config import setup_logging
 from app.services.db_service import (
-    get_stored_response, 
-    save_transaction, 
-    get_account_info,
-    update_transaction_status
+    get_stored_response, save_transaction, get_account_info, update_transaction_status
 )
 from app.services.xml_generator import (
-    build_serviceinfo_response, 
-    build_transactionstart_response, 
-    build_error_response,
-    build_transactionresult_response
+    build_serviceinfo_response, build_transactionstart_response, 
+    build_error_response, build_transactionresult_response
 )
 
-structlog.configure(
-    wrapper_class=structlog.make_filtering_bound_logger(20),
-    processors=[
-        structlog.stdlib.filter_by_level, structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level, structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer()
-    ],
-    logger_factory=structlog.stdlib.LoggerFactory(), cache_logger_on_first_use=True,
-)
-
+setup_logging(level="DEBUG")  # Изменить "INFO" для продакшена
 logger = structlog.get_logger()
+
 app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        "unhandled_exception",
+        path=request.url.path,
+        method=request.method,
+        error=str(exc),
+        exc_info=True
+    )
+    return Response(
+        content='<?xml version="1.0" encoding="windows-1251"?>\n'
+                '<ServiceProvider_Response>\n'
+                '  <Error>\n'
+                '    <ErrorLine>Внутренняя ошибка сервера</ErrorLine>\n'
+                '  </Error>\n'
+                '</ServiceProvider_Response>',
+        media_type="text/xml; charset=windows-1251",
+        status_code=200
+    )
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        import time
+        start = time.time()
+        response = await call_next(request)
+        duration = round((time.time() - start) * 1000, 2)
+        logger.info(
+            "request_processed",
+            method=request.method,
+            url=str(request.url).split("?")[0],  # убираем параметры для читаемости
+            status_code=response.status_code,
+            duration_ms=duration
+        )
+        return response
+
+app.add_middleware(RequestLoggingMiddleware)
 
 def _detect_xml_encoding(xml_input) -> str:
     """Определяет кодировку из XML-декларации или возвращает дефолт"""
@@ -42,7 +68,6 @@ def _detect_xml_encoding(xml_input) -> str:
         snippet = xml_input[:200]
     match = re.search(r'encoding=["\']([^"\']+)["\']', snippet)
     return match.group(1) if match else "windows-1251"
-
 
 def parse_xml(xml_input) -> dict:
     """
