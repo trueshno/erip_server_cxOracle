@@ -228,18 +228,55 @@ async def erip_endpoint(request: Request):
                        service_trx_id=service_trx_id,
                        amount=amount_raw)
             
-            xml = '<?xml version="1.0" encoding="windows-1251"?><ServiceProvider_Response></ServiceProvider_Response>'
+            xml = '<?xml version="1.0" encoding="windows-1251"?>\n<ServiceProvider_Response></ServiceProvider_Response>\n'
             return Response(content=xml.encode("windows-1251"), 
                            media_type="text/xml; charset=windows-1251", status_code=200)
+     
+        elif req_type == "StornResult":
+            # Извлекаем данные из запроса
+            erip_trx_id = data.get("erip_trx_id") or ""
+            service_trx_id = data.get("service_trx_id") or ""
+            storned = data.get("storned")  # "Y" = успешно, "N" = не удалось
+            
+            # Обновляем статус транзакции в БД
+            if storned == "Y":
+                update_transaction_status(erip_trx_id, service_trx_id, "storned")
+                logger.info("storn_confirmed", 
+                           request_id=req_id,
+                           erip_trx_id=erip_trx_id,
+                           service_trx_id=service_trx_id)
+            elif storned == "N":
+                update_transaction_status(erip_trx_id, service_trx_id, "storn_failed")
+                logger.warning("storn_failed", 
+                              request_id=req_id,
+                              erip_trx_id=erip_trx_id,
+                              service_trx_id=service_trx_id)
+            else:
+                logger.warning("storned_value_unknown", 
+                              request_id=req_id,
+                              storned=storned)
+            
+            # Возвращаем пустой успешный ответ (требование протокола ЕРИП)
+            # Даже если транзакция не найдена — ответ должен быть положительным
+            xml = (
+                '<?xml version="1.0" encoding="windows-1251"?>\n'
+                '<ServiceProvider_Response></ServiceProvider_Response>\n'
+            )
+            return Response(
+                content=xml.encode("windows-1251"), 
+                media_type="text/xml; charset=windows-1251", 
+                status_code=200
+            )        
 
         else:
             return Response(content=build_error_response("Unsupported RequestType"), 
-                           media_type="text/xml; charset=windows-1251", status_code=200)
-                           
+                           media_type="text/xml; charset=windows-1251", status_code=200)                           
+
     except Exception as e:
         logger.error("processing_error", error=str(e), req_type=req_type, exc_info=True)
         return Response(content=build_error_response("Internal error"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
+    
 
 @app.get("/health")
 async def health():

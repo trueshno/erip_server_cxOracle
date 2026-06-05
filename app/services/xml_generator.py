@@ -1,23 +1,33 @@
 # -*- coding: utf-8 -*-
-"""Генераторы ответов ЕРИП. Возвращают БАЙТЫ в windows-1251."""
+"""
+Генераторы ответов ЕРИП.
+Возвращают БАЙТЫ в кодировке windows-1251 с читаемым форматированием.
+ВАЖНО: Все ответы заканчиваются \n для корректного отображения в терминале.
+"""
 
 def _mask_name(full_name: str) -> str:
+    """Маскирует ФИО: Иванов → И***в"""
     if not full_name or len(full_name) < 2:
         return full_name or ""
     return full_name[0] + "***" + full_name[-1]
 
+
 def _mask_city(city: str) -> str:
+    """Маскирует город: Минск → М***к"""
     if not city or len(city) < 2:
         return city or ""
     return city[0] + "***" + city[-1]
 
+
 def _mask_street(street: str) -> str:
+    """Маскирует улицу: Пушкина → П***а"""
     if not street or len(street) < 2:
         return street or ""
     return street[0] + "***" + street[-1]
 
+
 def _escape_xml(text: str) -> str:
-    """Экранирование спецсимволов для XML"""
+    """Экранирование спецсимволов для безопасного XML"""
     if not text:
         return ""
     return (str(text)
@@ -27,8 +37,9 @@ def _escape_xml(text: str) -> str:
             .replace('"', "&quot;")
             .replace("'", "&apos;"))
 
+
 def build_serviceinfo_response(acc: dict) -> bytes:
-    """Генерация ответа ServiceInfo в windows-1251. Гарантирует возврат bytes."""
+    """Генерация ответа ServiceInfo в windows-1251"""
     if not acc:
         xml = (
             '<?xml version="1.0" encoding="windows-1251"?>\n'
@@ -41,7 +52,7 @@ def build_serviceinfo_response(acc: dict) -> bytes:
             '      <InfoLine>Информация недоступна</InfoLine>\n'
             '    </Info>\n'
             '  </ServiceInfo>\n'
-            '</ServiceProvider_Response>'
+            '</ServiceProvider_Response>\n'
         )
         return xml.encode("windows-1251", errors="replace")
     
@@ -50,18 +61,13 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     min_amount = acc.get("min_amount") or "0,01"
     max_amount = acc.get("max_amount") or "100000,00"
     
-    surname = acc.get("surname") or ""
+    surname = _mask_name(acc.get("surname") or "")
     firstname = acc.get("firstname") or ""
     patronymic = acc.get("patronymic") or ""
-    city = acc.get("city") or ""
-    street = acc.get("street") or ""
+    city = _mask_city(acc.get("city") or "")
+    street = _mask_street(acc.get("street") or "")
     house = acc.get("house") or ""
     apartment = acc.get("apartment") or ""
-    
-    def mask(val: str) -> str:
-        if not val or len(val) < 2:
-            return val or ""
-        return val[0] + "***" + val[-1]
     
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
@@ -71,44 +77,42 @@ def build_serviceinfo_response(acc: dict) -> bytes:
         f'      <Debt>{debt}</Debt>\n'
         '    </Amount>\n'
         '    <Name>\n'
-        f'      <Surname>{mask(surname)}</Surname>\n'
-        f'      <FirstName>{firstname}</FirstName>\n'
-        f'      <Patronymic>{patronymic}</Patronymic>\n'
+        f'      <Surname>{_escape_xml(surname)}</Surname>\n'
+        f'      <FirstName>{_escape_xml(firstname)}</FirstName>\n'
+        f'      <Patronymic>{_escape_xml(patronymic)}</Patronymic>\n'
         '    </Name>\n'
         '    <Address>\n'
-        f'      <City>{mask(city)}</City>\n'
-        f'      <Street>{mask(street)}</Street>\n'
-        f'      <House>{house}</House>\n'
-        f'      <Apartment>{apartment}</Apartment>\n'
+        f'      <City>{_escape_xml(city)}</City>\n'
+        f'      <Street>{_escape_xml(street)}</Street>\n'
+        f'      <House>{_escape_xml(house)}</House>\n'
+        f'      <Apartment>{_escape_xml(apartment)}</Apartment>\n'
         '    </Address>\n'
         '    <Info>\n'
-        '      <InfoLine>Задолженность по оплате: </InfoLine>\n'
-        f'      <InfoLine>Составляет: {debt}</InfoLine>\n'
+        '      <InfoLine>Задолженность по оплате за квартиру</InfoLine>\n'
+        f'      <InfoLine>Составляет: {_escape_xml(debt)}</InfoLine>\n'
         '    </Info>\n'
         '  </ServiceInfo>\n'
-        '</ServiceProvider_Response>'
+        '</ServiceProvider_Response>\n'
     )
     
-    try:
-        return xml.encode("windows-1251", errors="replace")
-    except Exception as e:
-        fallback = '<?xml version="1.0" encoding="windows-1251"?><ServiceProvider_Response><ServiceInfo><Amount><Debt>0,00</Debt></Amount><Info><InfoLine>Error</InfoLine></Info></ServiceInfo></ServiceProvider_Response>'
-        return fallback.encode("windows-1251", errors="replace")
-    
+    return xml.encode("windows-1251", errors="replace")
+
+
 def build_transactionstart_response(svc_trx_id: str) -> bytes:
-    """
-    svc_trx_id: идентификатор транзакции сервиса
-    """
+    """Генерация ответа TransactionStart в windows-1251"""
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
         '  <TransactionStart>\n'
-        f'    <ServiceTransactionId>{svc_trx_id}</ServiceTransactionId>\n'
-        '    <Status>OK</Status>\n'
+        f'    <ServiceProvider_TrxId>{svc_trx_id}</ServiceProvider_TrxId>\n'
+        '    <Info>\n'
+        f'      <InfoLine>Номер операции: {svc_trx_id}</InfoLine>\n'
+        '    </Info>\n'
         '  </TransactionStart>\n'
-        '</ServiceProvider_Response>'
+        '</ServiceProvider_Response>\n'
     )
-    return xml.encode("windows-1251", errors="replace") 
+    return xml.encode("windows-1251", errors="replace")
+
 
 def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes:
     """Генерация ответа TransactionResult в windows-1251"""
@@ -119,7 +123,6 @@ def build_transactionresult_response(success: bool, custom_lines: list = None) -
             "Задолженность оплачена"
         ]
     else:
-        # ← ОШИБКА: короткий ответ
         info_lines = ["Оплата аннулирована!"]
     
     lines_xml = "\n".join(f"      <InfoLine>{_escape_xml(line)}</InfoLine>" for line in info_lines)
@@ -132,20 +135,22 @@ def build_transactionresult_response(success: bool, custom_lines: list = None) -
         f'{lines_xml}\n'
         '    </Info>\n'
         '  </TransactionResult>\n'
-        '</ServiceProvider_Response>'
+        '</ServiceProvider_Response>\n'
     )
     return xml.encode("windows-1251", errors="replace")
 
+
 def build_error_response(error_message: str) -> bytes:
-    """
-    error_message: текст ошибки
-    """
+    """Генерация ответа с ошибкой в формате ЕРИП"""
+    lines = error_message.split('\n') if '\n' in error_message else [error_message]
+    lines_xml = "\n".join(f"    <ErrorLine>{_escape_xml(line)}</ErrorLine>" for line in lines)
+    
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
         '  <Error>\n'
-        f'    <Message>{_escape_xml(error_message)}</Message>\n'
+        f'{lines_xml}\n'
         '  </Error>\n'
-        '</ServiceProvider_Response>'
+        '</ServiceProvider_Response>\n'
     )
     return xml.encode("windows-1251", errors="replace")
