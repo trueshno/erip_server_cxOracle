@@ -3,30 +3,31 @@
 Генераторы ответов ЕРИП.
 Возвращают БАЙТЫ в кодировке windows-1251 с читаемым форматированием.
 """
+from typing import Optional, List 
 
 def _mask_name(full_name: str) -> str:
-    """Маска ФИО"""
+    # Маска ФИО
     if not full_name or len(full_name) < 2:
         return full_name or ""
     return full_name[0] + "***" + full_name[-1]
 
 
 def _mask_city(city: str) -> str:
-    """Маска город"""
+    # Маска город
     if not city or len(city) < 2:
         return city or ""
     return city[0] + "***" + city[-1]
 
 
 def _mask_street(street: str) -> str:
-    """Маска улица"""
+    # Маска улица
     if not street or len(street) < 2:
         return street or ""
     return street[0] + "***" + street[-1]
 
 
 def _escape_xml(text: str) -> str:
-    """Экранирование"""
+    # Экранирование
     if not text:
         return ""
     return (str(text)
@@ -110,8 +111,7 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
     )
     return xml.encode("windows-1251", errors="replace")
 
-
-def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes:
+def build_transactionresult_response(success: bool, custom_lines: Optional[List[str]] = None) -> bytes:
     if custom_lines:
         info_lines = custom_lines
     elif success:
@@ -133,9 +133,8 @@ def build_transactionresult_response(success: bool, custom_lines: list = None) -
     )
     return xml.encode("windows-1251", errors="replace")
 
-
 def build_error_response(error_message: str) -> bytes:
-    """Генерация ответа с ошибкой пример 7"""
+    # Генерация ответа с ошибкой пример 7"""
     lines = error_message.split('\n') if '\n' in error_message else [error_message]
     lines_xml = "\n".join(f"    <ErrorLine>{_escape_xml(line)}</ErrorLine>" for line in lines)
     
