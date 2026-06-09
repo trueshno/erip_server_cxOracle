@@ -2,32 +2,31 @@
 """
 Генераторы ответов ЕРИП.
 Возвращают БАЙТЫ в кодировке windows-1251 с читаемым форматированием.
-ВАЖНО: Все ответы заканчиваются \n для корректного отображения в терминале.
 """
 
 def _mask_name(full_name: str) -> str:
-    """Маскирует ФИО: Иванов → И***в"""
+    """Маска ФИО"""
     if not full_name or len(full_name) < 2:
         return full_name or ""
     return full_name[0] + "***" + full_name[-1]
 
 
 def _mask_city(city: str) -> str:
-    """Маскирует город: Минск → М***к"""
+    """Маска город"""
     if not city or len(city) < 2:
         return city or ""
     return city[0] + "***" + city[-1]
 
 
 def _mask_street(street: str) -> str:
-    """Маскирует улицу: Пушкина → П***а"""
+    """Маска улица"""
     if not street or len(street) < 2:
         return street or ""
     return street[0] + "***" + street[-1]
 
 
 def _escape_xml(text: str) -> str:
-    """Экранирование спецсимволов для безопасного XML"""
+    """Экранирование"""
     if not text:
         return ""
     return (str(text)
@@ -39,7 +38,6 @@ def _escape_xml(text: str) -> str:
 
 
 def build_serviceinfo_response(acc: dict) -> bytes:
-    """Генерация ответа ServiceInfo в windows-1251"""
     if not acc:
         xml = (
             '<?xml version="1.0" encoding="windows-1251"?>\n'
@@ -99,7 +97,6 @@ def build_serviceinfo_response(acc: dict) -> bytes:
 
 
 def build_transactionstart_response(svc_trx_id: str) -> bytes:
-    """Генерация ответа TransactionStart в windows-1251"""
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
@@ -115,13 +112,10 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
 
 
 def build_transactionresult_response(success: bool, custom_lines: list = None) -> bytes:
-    """Генерация ответа TransactionResult в windows-1251"""
     if custom_lines:
         info_lines = custom_lines
     elif success:
-        info_lines = [
-            "Задолженность оплачена"
-        ]
+        info_lines = ["Задолженность оплачена"]
     else:
         info_lines = ["Оплата аннулирована!"]
     

@@ -18,7 +18,7 @@ from app.services.xml_generator import (
     build_error_response, build_transactionresult_response
 )
 
-setup_logging(level="DEBUG")  # Изменить "INFO" для продакшена
+setup_logging(level="DEBUG")  # Изменить на INFO для продакшена
 logger = structlog.get_logger()
 
 app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
@@ -52,7 +52,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         logger.info(
             "request_processed",
             method=request.method,
-            url=str(request.url).split("?")[0],  # убираем параметры для читаемости
+            url=str(request.url).split("?")[0],
             status_code=response.status_code,
             duration_ms=duration
         )
@@ -102,7 +102,7 @@ def parse_xml(xml_input) -> dict:
     
     req_type = data["request_type"]
     
-    # === Парсинг специфичных полей по типу запроса ===
+    # Парсинг специфичных полей по типу запроса
     if req_type == "ServiceInfo":
         agent_el = root.find(".//ServiceInfo/Agent")
         data["agent"] = agent_el.text.strip() if (agent_el is not None and agent_el.text) else None
@@ -281,8 +281,7 @@ async def erip_endpoint(request: Request):
                               request_id=req_id,
                               storned=storned)
             
-            # Возвращаем пустой успешный ответ (требование протокола ЕРИП)
-            # Даже если транзакция не найдена — ответ должен быть положительным
+            # Даже если транзакция не найдена — ответ должен быть пустым положительным
             xml = (
                 '<?xml version="1.0" encoding="windows-1251"?>\n'
                 '<ServiceProvider_Response></ServiceProvider_Response>\n'

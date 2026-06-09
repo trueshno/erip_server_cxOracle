@@ -1,5 +1,5 @@
 def parse_xml(xml_str: str) -> dict:
-    """Парсит XML из строки (уже декодированной)"""
+    # Парсит XML из строки (уже декодированной)
     import xml.etree.ElementTree as ET
     
     if xml_str.startswith('\ufeff'):

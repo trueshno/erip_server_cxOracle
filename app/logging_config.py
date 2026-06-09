@@ -25,7 +25,6 @@ def setup_logging(level: str = "INFO"):
             structlog.processors.StackInfoRenderer(),
             structlog.dev.set_exc_info,
             structlog.processors.TimeStamper(fmt="iso"),
-            # Читаемый текст без цветов (идеально для IDE)
             structlog.dev.ConsoleRenderer(colors=False)
         ],
         logger_factory=structlog.stdlib.LoggerFactory(),

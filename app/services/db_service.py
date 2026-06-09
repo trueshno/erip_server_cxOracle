@@ -39,10 +39,10 @@ def update_transaction_status(
     status: str, 
     error_text: Optional[str] = None
 ) -> bool:
-    """Обновляет статус транзакции. Параметры ID могут быть None."""
+    """Обновляет статус транзакции. Параметры ID могут быть none"""
     db = SessionLocal()
     try:
-        # Если оба ID None — ничего не делаем
+        # Если оба ID None — ничего
         if not erip_trx_id and not service_trx_id:
             logger.warning("no_ids_provided_for_update")
             return False
@@ -78,7 +78,7 @@ def update_transaction_status(
         db.close()
 
 def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
-    """Получает данные счёта из таблицы accounts"""
+    """Получаем данные счёта из таблицы accounts"""
     db = SessionLocal()
     try:
         acc = db.query(Account).filter(
@@ -132,7 +132,7 @@ def save_transaction(
         if svc_trx_id is None:
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
 
-        # Собираем метаданные
+        # Метаданные
         metadata = {
             "request_type": req_type,
             "erip_trx_id": erip_trx_id,
@@ -156,7 +156,6 @@ def save_transaction(
             auth_type=(auth_type[:50] if auth_type else None),  # type: ignore[call-arg]
             terminal_type=(terminal_type[:50] if terminal_type else None),  # type: ignore[call-arg]
             metadata_json=json.dumps(metadata, ensure_ascii=False),  # type: ignore[call-arg]
-            # ← Новые поля:
             request_type=req_type,  # type: ignore[call-arg]
             erip_transaction_id=erip_trx_id  # type: ignore[call-arg]
         )
