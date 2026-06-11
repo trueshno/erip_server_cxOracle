@@ -4,7 +4,7 @@ import secrets
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from app.models import Transaction, Account, TransactionError
 from app.db import SessionLocal
 
@@ -95,15 +95,15 @@ def get_account_info(personal_account: str) -> Optional[Dict[str, Any]]:
         return {
             "debt": fmt(acc.debt_amount),
             "editable": acc.editable_flag or "Y",
-            "min_amount": fmt(acc.min_amount),
-            "max_amount": fmt(acc.max_amount),
-            "surname": acc.holder_surname or "",
-            "firstname": acc.holder_firstname or "",
-            "patronymic": acc.holder_patronymic or "",
-            "city": acc.city or "",
+            # "min_amount": fmt(acc.min_amount),
+            # "max_amount": fmt(acc.max_amount),
+            # "surname": acc.holder_surname or "",
+            # "firstname": acc.holder_firstname or "",
+            # "patronymic": acc.holder_patronymic or "",
+            # "city": acc.city or "",
             "street": acc.street or "",
-            "house": acc.house or "",
-            "apartment": acc.apartment or ""
+            # "house": acc.house or "",
+            # "apartment": acc.apartment or ""
         }
     except Exception as e:
         logger.error("db_account_query_error", error=str(e))
@@ -168,6 +168,56 @@ def save_transaction(
     except Exception as e:
         db.rollback()
         logger.error("db_insert_error", error=str(e), req_id=req_id, exc_info=True)
+        return None
+    finally:
+        db.close()
+
+def get_account_info_alex(personal_account: str) -> Optional[Dict[str, Any]]:
+    """
+    Получает данные счёта из рабочей схемы ALEX.
+    personal_account: NUM_ERIP из ALEX.PAYMENTS
+    """
+    db = SessionLocal()
+    try:
+        # Проверяем, что NUM_ERIP — число
+        try:
+            num_erip = int(personal_account.strip())
+        except ValueError:
+            logger.warning("invalid_num_erip_format", account=personal_account)
+            return None
+        
+        # 1. Считаем задолженность: сумма SUMMA для данного NUM_ERIP
+        debt_query = text("""
+            SELECT NVL(SUM(SUMMA), 0)
+            FROM ALEX.PAYMENTS
+            WHERE NUM_ERIP = :num_erip
+        """)
+        debt_val = db.execute(debt_query, {"num_erip": num_erip}).scalar() or 0
+        
+        # 2. Получаем адрес: берём PRIMADR из первого найденного ORDEROBJ
+        addr_query = text("""
+            SELECT obj.PRIMADR
+            FROM ALEX.PAYMENTS p
+            JOIN ALEX.ORDEROBJ obj ON p.IDORDER = obj.IDORDER
+            WHERE p.NUM_ERIP = :num_erip AND ROWNUM = 1
+        """)
+        addr_result = db.execute(addr_query, {"num_erip": num_erip}).fetchone()
+        
+        # 3. Формируем ответ
+        def fmt(val: float) -> str:
+            return f"{val:.2f}".replace(".", ",")
+        
+        # 🔹 Весь адрес из PRIMADR → в street, остальное пусто
+        street = addr_result[0].strip() if addr_result and addr_result[0] else ""
+        
+        return {
+            "debt": fmt(float(debt_val)),
+            "editable": "Y",
+            "street": street
+        }
+        
+    except Exception as e:
+        logger.error("alex_db_error", error=str(e), personal_account=personal_account, exc_info=True)
         return None
     finally:
         db.close()

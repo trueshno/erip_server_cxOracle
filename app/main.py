@@ -11,7 +11,7 @@ from starlette.datastructures import UploadFile
 
 from app.logging_config import setup_logging
 from app.services.db_service import (
-    get_stored_response, save_transaction, get_account_info, update_transaction_status
+    get_stored_response, save_transaction, get_account_info, update_transaction_status, get_account_info_alex
 )
 from app.services.xml_generator import (
     build_serviceinfo_response, build_transactionstart_response, 
@@ -190,11 +190,16 @@ async def erip_endpoint(request: Request):
 
     try:
         if req_type == "ServiceInfo":
-            acc = get_account_info(data["personal_account"])
+            # Только рабочая схема ALEX
+            acc = get_account_info_alex(data["personal_account"])
+            
             if not acc:
                 return Response(content=build_error_response("Account not found"), 
-                               media_type="text/xml; charset=windows-1251", status_code=200)
+                            media_type="text/xml; charset=windows-1251", status_code=200)
+            
             resp_xml = build_serviceinfo_response(acc)
+            
+            # Сохраняем транзакцию (если нужно)
             save_transaction(
                 req_id=req_id, req_type=req_type, account=data["personal_account"],
                 currency=data["currency"], amount_byn=0.0, erip_trx_id="",
@@ -204,7 +209,7 @@ async def erip_endpoint(request: Request):
                 agent_code=int(data.get("agent", 0) or 0)
             )
             return Response(content=resp_xml, 
-                           media_type="text/xml; charset=windows-1251", status_code=200)
+                        media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionStart":
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])

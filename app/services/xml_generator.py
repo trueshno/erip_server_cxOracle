@@ -5,25 +5,25 @@
 """
 from typing import Optional, List 
 
-def _mask_name(full_name: str) -> str:
-    # Маска ФИО
-    if not full_name or len(full_name) < 2:
-        return full_name or ""
-    return full_name[0] + "***" + full_name[-1]
+# def _mask_name(full_name: str) -> str:
+#     # Маска ФИО
+#     if not full_name or len(full_name) < 2:
+#         return full_name or ""
+#     return full_name[0] + "***" + full_name[-1]
 
 
-def _mask_city(city: str) -> str:
-    # Маска город
-    if not city or len(city) < 2:
-        return city or ""
-    return city[0] + "***" + city[-1]
+# def _mask_city(city: str) -> str:
+#     # Маска город
+#     if not city or len(city) < 2:
+#         return city or ""
+#     return city[0] + "***" + city[-1]
 
 
-def _mask_street(street: str) -> str:
-    # Маска улица
-    if not street or len(street) < 2:
-        return street or ""
-    return street[0] + "***" + street[-1]
+# def _mask_street(street: str) -> str:
+#     # Маска улица
+#     if not street or len(street) < 2:
+#         return street or ""
+#     return street[0] + "***" + street[-1]
 
 
 def _escape_xml(text: str) -> str:
@@ -44,7 +44,7 @@ def build_serviceinfo_response(acc: dict) -> bytes:
             '<?xml version="1.0" encoding="windows-1251"?>\n'
             '<ServiceProvider_Response>\n'
             '  <ServiceInfo>\n'
-            '    <Amount Editable="N" MinAmount="0,01" MaxAmount="100000,00">\n'
+            '    <Amount Editable="N"\n'
             '      <Debt>0,00</Debt>\n'
             '    </Amount>\n'
             '    <Info>\n'
@@ -57,34 +57,26 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     
     debt = acc.get("debt") or "0,00"
     editable = acc.get("editable") or "Y"
-    min_amount = acc.get("min_amount") or "0,01"
-    max_amount = acc.get("max_amount") or "100000,00"
+    # min_amount = acc.get("min_amount") or "0,01"
+    # max_amount = acc.get("max_amount") or "100000,00"
     
-    surname = _mask_name(acc.get("surname") or "")
+    # surname = _mask_name(acc.get("surname") or "")
     firstname = acc.get("firstname") or ""
     patronymic = acc.get("patronymic") or ""
-    city = _mask_city(acc.get("city") or "")
-    street = _mask_street(acc.get("street") or "")
-    house = acc.get("house") or ""
-    apartment = acc.get("apartment") or ""
+    # city = _mask_city(acc.get("city") or "")
+    street = acc.get("street") or ""
+    # house = acc.get("house") or ""
+    # apartment = acc.get("apartment") or ""
     
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
         '  <ServiceInfo>\n'
-        f'    <Amount Editable="{editable}" MinAmount="{min_amount}" MaxAmount="{max_amount}">\n'
+        f'    <Amount Editable="{editable}">\n'
         f'      <Debt>{debt}</Debt>\n'
         '    </Amount>\n'
-        '    <Name>\n'
-        f'      <Surname>{_escape_xml(surname)}</Surname>\n'
-        f'      <FirstName>{_escape_xml(firstname)}</FirstName>\n'
-        f'      <Patronymic>{_escape_xml(patronymic)}</Patronymic>\n'
-        '    </Name>\n'
         '    <Address>\n'
-        f'      <City>{_escape_xml(city)}</City>\n'
-        f'      <Street>{_escape_xml(street)}</Street>\n'
-        f'      <House>{_escape_xml(house)}</House>\n'
-        f'      <Apartment>{_escape_xml(apartment)}</Apartment>\n'
+        f'      <Street>{_escape_xml(street)}</Street>\n' 
         '    </Address>\n'
         '    <Info>\n'
         '      <InfoLine>Задолженность по оплате</InfoLine>\n'
