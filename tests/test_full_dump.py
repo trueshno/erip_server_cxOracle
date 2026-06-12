@@ -16,8 +16,9 @@ try:
         service_name=os.getenv("ORACLE_SERVICE_NAME")
     )
     
+    # Подключение через erip_user к схеме ALEX
     conn = cx_Oracle.connect(
-        user=os.getenv("ORACLE_USER"),
+        user=os.getenv("ORACLE_USER"),  # должен быть erip_user
         password=os.getenv("ORACLE_PASS"),
         dsn=dsn
     )
@@ -25,44 +26,42 @@ try:
     
     cur = conn.cursor()
 
-    # --- ИСПРАВЛЕНИЕ ДЛЯ СТАРЫХ ВЕРСИЙ cx_Oracle ---
     def output_type_handler(cursor, name, defaultType, size, precision, scale):
-        # Принудительно конвертируем CLOB и NCLOB в строки Python
         if defaultType in (cx_Oracle.CLOB, cx_Oracle.NCLOB):
-            # Для старых версий используем только размер буфера
             return cursor.var(cx_Oracle.STRING, arraysize=cur.arraysize, size=4000)
         if defaultType == cx_Oracle.FIXED_CHAR:
             return cursor.var(cx_Oracle.STRING, arraysize=cur.arraysize, size=size)
     
-    # Проверяем, поддерживает ли курсор этот атрибут (есть в версиях 6+)
     if hasattr(cur, 'outputtypehandler'):
         cur.outputtypehandler = output_type_handler
     # -------------------------------------------------
 
-    # 1. Получаем список всех таблиц пользователя
-    cur.execute("""
-        SELECT table_name 
-        FROM user_tables 
-        ORDER BY table_name
-    """)
-    tables = [row[0] for row in cur.fetchall()]
+    # Конкретные таблицы из схемы ALEX
+    TABLES = ['DOGOVOR', 'KASSA', 'ORDERCHECK', 'ORDERDOCUMENTS', 'ORDEREXTR', 'ORDEROBJ', 'ORDERS', 'ORDERSUBJ', 'OUTDOCS', 'PAYMENTS', 'PAYMENTSHISTOR', 'SMSOCH_TINV']
+    SCHEMA = 'ALEX'
     
-    print(f"📂 НАЙДЕНО ТАБЛИЦ: {len(tables)}")
+    print(f"📂 ТАБЛИЦЫ ДЛЯ ЭКСПОРТА: {len(TABLES)}")
+    print(f"📋 СХЕМА: {SCHEMA}")
     print("=" * 60)
     
-    for table_name in tables:
-        print(f"\n📊 ТАБЛИЦА: {table_name}")
+    for table_name in TABLES:
+        print(f"\n📊 ТАБЛИЦА: {SCHEMA}.{table_name}")
         print("-" * 40)
         
-        # 2. Получаем структуру таблицы
+        # 1. Получаем структуру таблицы из схемы ALEX
         cur.execute("""
             SELECT column_name, data_type, data_length, data_precision, data_scale, nullable
-            FROM user_tab_columns 
-            WHERE table_name = :tbl
+            FROM all_tab_columns 
+            WHERE owner = :schema AND table_name = :tbl
             ORDER BY column_id
-        """, tbl=table_name)
+        """, schema=SCHEMA, tbl=table_name)
         
         columns = cur.fetchall()
+        
+        if not columns:
+            print(f"⚠ Таблица {SCHEMA}.{table_name} не найдена или нет доступа")
+            continue
+        
         print("Структура:")
         header = f"{'Колонка':<25} {'Тип':<15} {'Длина':<6} {'Null'}"
         print(header)
@@ -85,22 +84,22 @@ try:
                 
             print(f"{col[0]:<25} {type_str:<15} {col[2]:<6} {nullable}")
         
-        # 3. Получаем количество строк
-        cur.execute(f"SELECT COUNT(*) FROM {table_name}")
+        # 2. Получаем количество строк
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.{table_name}")
         count = cur.fetchone()[0]
         print(f"\nВсего строк: {count}")
         
-        # 4. Выводим данные
+        # 3. Выводим данные (только 5 записей)
         if count > 0:
-            print("\nСодержимое (первые 10 строк):")
+            print("\nСодержимое (первые 5 строк):")
             
             cols_str = ", ".join([f'"{c}"' for c in col_names])
             sql = f"""
                 SELECT {cols_str} 
                 FROM (
-                    SELECT {cols_str} FROM {table_name}
+                    SELECT {cols_str} FROM {SCHEMA}.{table_name}
                 )
-                WHERE ROWNUM <= 10
+                WHERE ROWNUM <= 5
             """
             
             try:
@@ -118,7 +117,6 @@ try:
                         elif isinstance(val, datetime.date):
                             vals.append(val.strftime('%Y-%m-%d'))
                         elif isinstance(val, cx_Oracle.LOB):
-                            # Резервный вариант, если handler не сработал
                             content = val.read()
                             if isinstance(content, bytes):
                                 content = content.decode('utf-8', errors='replace')
@@ -129,8 +127,8 @@ try:
                             vals.append(str(val))
                     print(", ".join(vals))
                     
-                if count > 10:
-                    print(f"  ... и еще {count - 10} строк (не показаны)")
+                if count > 5:
+                    print(f"  ... и еще {count - 5} строк (не показаны)")
             except Exception as e:
                 print(f"  ⚠ Ошибка чтения данных: {e}")
         else:
