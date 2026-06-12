@@ -45,7 +45,7 @@ def update_transaction_status(
     status: str, 
     error_text: Optional[str] = None
 ) -> bool:
-    """Обновляет статус и время обработки в таблице TRANSACTIONS."""
+    """Обновляет статус и логирует ошибку в TRANSACTION_ERRORS при статусе failed"""
     db = SessionLocal()
     try:
         filters = []
@@ -58,22 +58,35 @@ def update_transaction_status(
             logger.warning("no_ids_for_status_update")
             return False
             
-        trx = db.query(Transaction).filter(or_(*filters)).first() # type: ignore
+        trx = db.query(Transaction).filter(or_(*filters)).first()  # type: ignore[call-arg]
         if not trx:
             logger.warning("transaction_not_found_for_update", erip_trx_id=erip_trx_id, service_trx_id=service_trx_id)
             return False
         
+        # 1. Обновляем основную транзакцию
         trx.status = status
         trx.processed_at = datetime.now()
         if error_text:
             trx.error_text = error_text[:4000] if len(error_text) > 4000 else error_text
+            
+        # 2. 🔹 ЛОГИРОВАНИЕ ОШИБКИ В TRANSACTION_ERRORS
+        if error_text and status == "failed":
+            error_record = TransactionError(
+                transaction_id=trx.id,
+                error_stage="TransactionResult",
+                error_code=400,  # Код ошибки (можно вынести в параметр или парсить из XML)
+                error_text=error_text[:4000] if len(error_text) > 4000 else error_text,
+                created_at=datetime.now()
+            )
+            db.add(error_record)
+            logger.info("error_logged_to_db", transaction_id=trx.id, error=error_text[:50])
             
         db.commit()
         logger.info("transaction_status_updated", trx_id=trx.id, status=status)
         return True
     except Exception as e:
         db.rollback()
-        logger.error("db_update_error", error=str(e))
+        logger.error("db_update_error", error=str(e), exc_info=True)
         return False
     finally:
         db.close()

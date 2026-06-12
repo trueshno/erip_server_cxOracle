@@ -46,8 +46,8 @@ class Account(Base):
 class TransactionError(Base):
     __tablename__ = "transaction_errors"
     
-    id = Column(Integer, primary_key=True)
-    transaction_id = Column("transaction_id", Integer)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    transaction_id = Column("transaction_id", Integer)  # Ссылка на transactions.id
     error_stage = Column("error_stage", String(20), nullable=False)
     error_code = Column("error_code", Integer)
     error_text = Column("error_text", CLOB)
