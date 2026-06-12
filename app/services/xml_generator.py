@@ -61,8 +61,8 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     # max_amount = acc.get("max_amount") or "100000,00"
     
     # surname = _mask_name(acc.get("surname") or "")
-    firstname = acc.get("firstname") or ""
-    patronymic = acc.get("patronymic") or ""
+    # firstname = acc.get("firstname") or ""
+    # patronymic = acc.get("patronymic") or ""
     # city = _mask_city(acc.get("city") or "")
     street = acc.get("street") or ""
     # house = acc.get("house") or ""
@@ -96,7 +96,7 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
         '  <TransactionStart>\n'
         f'    <ServiceProvider_TrxId>{svc_trx_id}</ServiceProvider_TrxId>\n'
         '    <Info>\n'
-        f'      <InfoLine>Номер операции: </InfoLine>\n'
+        f'      <InfoLine>Номер операции: {svc_trx_id}</InfoLine>\n'
         '    </Info>\n'
         '  </TransactionStart>\n'
         '</ServiceProvider_Response>\n'
@@ -104,6 +104,10 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
     return xml.encode("windows-1251", errors="replace")
 
 def build_transactionresult_response(success: bool, custom_lines: Optional[List[str]] = None) -> bytes:
+    """
+    Генерация ответа TransactionResult в windows-1251.
+    Упрощённый формат: только статус оплаты.
+    """
     if custom_lines:
         info_lines = custom_lines
     elif success:
@@ -121,7 +125,7 @@ def build_transactionresult_response(success: bool, custom_lines: Optional[List[
         f'{lines_xml}\n'
         '    </Info>\n'
         '  </TransactionResult>\n'
-        '</ServiceProvider_Response>\n'
+        '</ServiceProvider_Response>'
     )
     return xml.encode("windows-1251", errors="replace")
 

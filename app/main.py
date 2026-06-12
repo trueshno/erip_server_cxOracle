@@ -147,6 +147,7 @@ async def erip_endpoint(request: Request):
     
     xml_content: str = ""
     
+    # 1. Сначала читаем XML в строку
     if isinstance(XML, UploadFile):
         file_content = await XML.read()
         if isinstance(file_content, bytes):
@@ -168,6 +169,7 @@ async def erip_endpoint(request: Request):
     
     logger.info("request_received", xml_len=len(xml_content))
     
+    # 2. Парсим XML
     try:
         data = parse_xml(xml_content)
     except Exception as e:
@@ -175,6 +177,7 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Invalid XML"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
+    # 3. Теперь извлекаем req_id и req_type (после парсинга!)
     req_id = data.get("request_id")
     req_type = data.get("request_type")
     
@@ -182,24 +185,22 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Missing required fields"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    stored = get_stored_response(req_id)
+    # 4. Проверка идемпотентности по паре (RequestId, RequestType)
+    stored = get_stored_response(req_id, req_type)
     if stored:
-        logger.info("idempotent_hit", request_id=req_id)
+        logger.info("idempotent_hit", request_id=req_id, request_type=req_type)
         return Response(content=stored.encode("windows-1251"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
+    # 5. Бизнес-логика по типам запросов
     try:
         if req_type == "ServiceInfo":
-            # Только рабочая схема ALEX
             acc = get_account_info_alex(data["personal_account"])
-            
             if not acc:
                 return Response(content=build_error_response("Account not found"), 
-                            media_type="text/xml; charset=windows-1251", status_code=200)
+                               media_type="text/xml; charset=windows-1251", status_code=200)
             
             resp_xml = build_serviceinfo_response(acc)
-            
-            # Сохраняем транзакцию (если нужно)
             save_transaction(
                 req_id=req_id, req_type=req_type, account=data["personal_account"],
                 currency=data["currency"], amount_byn=0.0, erip_trx_id="",
@@ -209,11 +210,17 @@ async def erip_endpoint(request: Request):
                 agent_code=int(data.get("agent", 0) or 0)
             )
             return Response(content=resp_xml, 
-                        media_type="text/xml; charset=windows-1251", status_code=200)
+                           media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionStart":
+            acc = get_account_info_alex(data["personal_account"])
+            if not acc:
+                return Response(content=build_error_response("Account not found"),
+                               media_type="text/xml; charset=windows-1251", status_code=200)
+
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
             resp_xml = build_transactionstart_response(svc_trx_id)
+
             save_transaction(
                 req_id=req_id, req_type=req_type, account=data["personal_account"],
                 currency=data["currency"], amount_byn=data.get("amount_byn", 0.0),
@@ -233,19 +240,20 @@ async def erip_endpoint(request: Request):
             service_trx_id = data.get("service_trx_id") or ""
             error_text = data.get("error_text")
             
+            # Определяем статус и генерируем ответ
             if error_text:
                 status = "failed"
-                resp_xml = build_transactionresult_response(False)  # "Оплата аннулирована!"
-                logger.info("transaction_result_with_error", request_id=req_id, error=error_text[:100])
+                resp_xml = build_transactionresult_response(success=False)
+                logger.info("transaction_result_error", request_id=req_id, error=error_text[:100])
             else:
                 status = "success"
-                resp_xml = build_transactionresult_response(True)  # "Задолженность оплачена"
+                resp_xml = build_transactionresult_response(success=True)
                 logger.info("transaction_result_success", request_id=req_id)
             
+            # Обновляем статус в локальной БД (TRANSACTIONS)
             update_transaction_status(erip_trx_id, service_trx_id, status, error_text)
             
-            return Response(content=resp_xml, 
-                           media_type="text/xml; charset=windows-1251", status_code=200)
+            return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "StornStart":
             erip_trx_id = data.get("erip_trx_id") or ""
@@ -263,50 +271,32 @@ async def erip_endpoint(request: Request):
                            media_type="text/xml; charset=windows-1251", status_code=200)
      
         elif req_type == "StornResult":
-            # Извлекаем данные из запроса
             erip_trx_id = data.get("erip_trx_id") or ""
             service_trx_id = data.get("service_trx_id") or ""
-            storned = data.get("storned")  # "Y" = успешно, "N" = не удалось
+            storned = data.get("storned")
             
-            # Обновляем статус транзакции в БД
             if storned == "Y":
                 update_transaction_status(erip_trx_id, service_trx_id, "storned")
-                logger.info("storn_confirmed", 
-                           request_id=req_id,
-                           erip_trx_id=erip_trx_id,
-                           service_trx_id=service_trx_id)
+                logger.info("storn_confirmed", request_id=req_id, erip_trx_id=erip_trx_id)
             elif storned == "N":
                 update_transaction_status(erip_trx_id, service_trx_id, "storn_failed")
-                logger.warning("storn_failed", 
-                              request_id=req_id,
-                              erip_trx_id=erip_trx_id,
-                              service_trx_id=service_trx_id)
+                logger.warning("storn_failed", request_id=req_id, erip_trx_id=erip_trx_id)
             else:
-                logger.warning("storned_value_unknown", 
-                              request_id=req_id,
-                              storned=storned)
+                logger.warning("storned_value_unknown", request_id=req_id, storned=storned)
             
-            # Даже если транзакция не найдена — ответ должен быть пустым положительным
-            xml = (
-                '<?xml version="1.0" encoding="windows-1251"?>\n'
-                '<ServiceProvider_Response></ServiceProvider_Response>\n'
-            )
-            return Response(
-                content=xml.encode("windows-1251"), 
-                media_type="text/xml; charset=windows-1251", 
-                status_code=200
-            )        
+            xml = '<?xml version="1.0" encoding="windows-1251"?>\n<ServiceProvider_Response></ServiceProvider_Response>\n'
+            return Response(content=xml.encode("windows-1251"), 
+                           media_type="text/xml; charset=windows-1251", status_code=200)
 
         else:
             return Response(content=build_error_response("Unsupported RequestType"), 
-                           media_type="text/xml; charset=windows-1251", status_code=200)                           
+                           media_type="text/xml; charset=windows-1251", status_code=200)
 
     except Exception as e:
         logger.error("processing_error", error=str(e), req_type=req_type, exc_info=True)
         return Response(content=build_error_response("Internal error"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
     
-
 @app.get("/health")
 async def health():
     return {"status": "ok"}

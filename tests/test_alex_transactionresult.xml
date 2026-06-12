@@ -9,8 +9,8 @@
   <Currency>933</Currency>
   <RequestId>REAL-TEST-003</RequestId>
   <TransactionResult>
-    <TransactionId>687181859793180445</TransactionId>  
+    <TransactionId>687181859793180433</TransactionId>  
     <ServiceProvider_TrxId>21466755</ServiceProvider_TrxId>
-    <ErrorText>Операция отменена</ErrorText>
+    <!-- <ErrorText>Операция отменена</ErrorText> -->
   </TransactionResult>
 </ServiceProvider_Request>

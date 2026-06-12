@@ -10,25 +10,31 @@ from app.db import SessionLocal
 
 logger = structlog.get_logger()
 
-def get_stored_response(request_id: str) -> Optional[str]:
-    """Возвращает сохранённый XML из metadata_json (идемпотентность)"""
+def get_stored_response(request_id: str, request_type: str) -> Optional[str]:
+    """
+    Возвращает сохранённый XML-ответ по паре (request_id, request_type).
+    Если не найдено — возвращает None.
+    """
+    if not request_id or not request_type:
+        return None
+        
     db = SessionLocal()
     try:
         row = db.query(Transaction).filter(
-            Transaction.erip_request_id == request_id
+            Transaction.erip_request_id == request_id,
+            Transaction.request_type == request_type
         ).first()  # type: ignore[call-arg]
         
         if row and row.metadata_json:
             try:
-                meta_raw = row.metadata_json
-                if meta_raw:
-                    return json.loads(meta_raw).get("response_xml")
+                meta = json.loads(row.metadata_json)
+                return meta.get("response_xml")
             except (json.JSONDecodeError, TypeError):
-                logger.warning("json_parse_failed", request_id=request_id)
+                logger.warning("cache_parse_error", request_id=request_id, request_type=request_type)
                 return None
         return None
     except Exception as e:
-        logger.error("db_query_error", error=str(e), request_id=request_id)
+        logger.error("cache_query_error", error=str(e), request_id=request_id, request_type=request_type)
         return None
     finally:
         db.close()
@@ -39,40 +45,35 @@ def update_transaction_status(
     status: str, 
     error_text: Optional[str] = None
 ) -> bool:
-    """Обновляет статус транзакции. Параметры ID могут быть none"""
+    """Обновляет статус и время обработки в таблице TRANSACTIONS."""
     db = SessionLocal()
     try:
-        # Если оба ID None — ничего
-        if not erip_trx_id and not service_trx_id:
-            logger.warning("no_ids_provided_for_update")
-            return False
-            
-        # Фильтр: ищем по любому из предоставленных ID
         filters = []
         if erip_trx_id:
             filters.append(Transaction.erip_transaction_id == erip_trx_id)
         if service_trx_id:
             filters.append(Transaction.service_trx_id == service_trx_id)
-        
-        trx = db.query(Transaction).filter(or_(*filters)).first() # type: ignore[call-arg]
-        
+            
+        if not filters:
+            logger.warning("no_ids_for_status_update")
+            return False
+            
+        trx = db.query(Transaction).filter(or_(*filters)).first() # type: ignore
         if not trx:
-            logger.warning("transaction_not_found_for_update", 
-                          erip_trx_id=erip_trx_id, service_trx_id=service_trx_id)
+            logger.warning("transaction_not_found_for_update", erip_trx_id=erip_trx_id, service_trx_id=service_trx_id)
             return False
         
         trx.status = status
         trx.processed_at = datetime.now()
         if error_text:
             trx.error_text = error_text[:4000] if len(error_text) > 4000 else error_text
-        
+            
         db.commit()
-        logger.info("transaction_status_updated", 
-                   erip_trx_id=erip_trx_id, service_trx_id=service_trx_id, new_status=status)
+        logger.info("transaction_status_updated", trx_id=trx.id, status=status)
         return True
     except Exception as e:
         db.rollback()
-        logger.error("db_update_error", error=str(e), erip_trx_id=erip_trx_id)
+        logger.error("db_update_error", error=str(e))
         return False
     finally:
         db.close()
