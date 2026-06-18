@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ServiceProvider_Request>
+  <RequestType>ServiceInfo</RequestType>
+  <PersonalAccount>9999999999</PersonalAccount>
+  <Currency>933</Currency>
+  <RequestId>ERR-OK-1781760538</RequestId>
+  <ServiceInfo><Agent>999</Agent></ServiceInfo>
+</ServiceProvider_Request>

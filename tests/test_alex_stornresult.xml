@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="windows-1251"?>
 <ServiceProvider_Request>
   <Version>1</Version>
-  <RequestType>TransactionResult</RequestType>
-  <DateTime>20200601155800</DateTime>
+  <RequestType>StornResult</RequestType>
+  <DateTime>20200601081902</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>5087875888</PersonalAccount>
   <Currency>933</Currency>
   <RequestId>REAL-TEST-003</RequestId>
-  <TransactionResult>
-    <TransactionId>687181859793180445</TransactionId>  
+  <StornResult>
+    <TransactionId>687181859793180433</TransactionId>
     <ServiceProvider_TrxId>21466755</ServiceProvider_TrxId>
-    <ErrorText>Операция отменена</ErrorText>
-  </TransactionResult>
+    <Amount>8,00</Amount>
+    <Storned>Y</Storned>  <!-- Y = успешно, N = нет -->
+  </StornResult>
 </ServiceProvider_Request>
