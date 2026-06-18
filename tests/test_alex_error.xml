@@ -7,7 +7,7 @@
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>123456</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>ERROR-TEST-001</RequestId>
+  <RequestId>ERROR-TEST-002</RequestId>
   <ServiceInfo>
     <Agent>999</Agent>
   </ServiceInfo>
