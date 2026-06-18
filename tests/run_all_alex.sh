@@ -11,7 +11,7 @@ VERBOSE=0
 # Проверка флага -v
 if [[ "$1" == "-v" || "$1" == "--verbose" ]]; then
     VERBOSE=1
-    echo "🔍 Режим: ПОДРОБНЫЙ"
+    echo "Режим: ПОДРОБНЫЙ"
 fi
 
 run_test() {
@@ -23,7 +23,7 @@ run_test() {
     echo "   Файл: $(basename "$file")"
     
     if [[ ! -f "$file" ]]; then
-        echo "  ❌ Файл не найден"
+        echo "  Файл не найден"
         ((FAIL++))
         return 1
     fi
@@ -40,11 +40,11 @@ run_test() {
     fi
     
     if echo "$response" | grep -q "<$expected_tag>"; then
-        echo "  ✅ OK (тег <$expected_tag> найден)"
+        echo "  OK (тег <$expected_tag> найден)"
         ((PASS++))
         return 0
     else
-        echo "  ❌ FAIL (ожидался <$expected_tag>)"
+        echo "  FAIL (ожидался <$expected_tag>)"
         if [[ $VERBOSE -eq 0 ]]; then
             echo "  Ответ: ${response:0:150}..."
         fi
@@ -53,7 +53,7 @@ run_test() {
     fi
 }
 
-echo "🚀 Запуск тестов"
+echo "Запуск тестов"
 
 run_test "Пример 1: ServiceInfo (долг)" "$TESTS_DIR/test_alex_serviceinfo.xml" "ServiceInfo"
 
@@ -69,14 +69,14 @@ run_test "Пример 6: StornResult" "$TESTS_DIR/test_alex_stornresult.xml" "S
 
 run_test "Пример 7: Ошибка (Account not found)" "$TESTS_DIR/test_alex_error.xml" "Error"
 
-echo "✅ Пройдено: $PASS"
-echo "❌ Провалено: $FAIL"
+echo "Пройдено: $PASS"
+echo "Провалено: $FAIL"
 
 if [[ $FAIL -eq 0 ]]; then
-    echo "🎉 Все тесты пройдены!"
+    echo "Все тесты пройдены!"
     exit 0
 else
-    echo "⚠️  Есть ошибки — проверьте логи: tail -f logs/app.log"
-    echo "💡 Подсказка: запустите с -v для просмотра ответов: ./run_all_alex.sh -v"
+    echo "Есть ошибки — проверьте логи: tail -f logs/app.log"
+    echo "Подсказка: запустите с -v для просмотра ответов: ./run_all_alex.sh -v"
     exit 1
 fi
