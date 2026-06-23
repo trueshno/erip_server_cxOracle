@@ -315,6 +315,6 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Internal error"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
     
-@app.get("/health")
-async def health():
+@app.get("/healthcheck")
+async def healthcheck():
     return {"status": "ok"}
