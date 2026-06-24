@@ -8,6 +8,10 @@ from sqlalchemy import or_, text
 from app.models import Transaction, Account, TransactionError
 from app.db import SessionLocal
 
+ERROR_ACCOUNT_NOT_FOUND = "Заказ {account}. Информация для оплаты не найдена. Проверьте номер заказа. vagr.by"
+ERROR_ZERO_DEBT = "Заказ {account}. Оплата при нулевой задолженности запрещена. vagr.by"
+ERROR_ACCOUNT_LOCKED = "Оплата по счету {account} временно заблокирована. vagr.by"
+
 logger = structlog.get_logger()
 
 def get_stored_response(request_id: str, request_type: str) -> Optional[str]:
@@ -129,6 +133,12 @@ def get_account_info_alex(personal_account: str) -> Optional[Dict[str, Any]]:
             WHERE NUM_ERIP = :num_erip
         """)
         debt_val = db.execute(debt_query, {"num_erip": num_erip}).scalar() or 0
+
+        # 🔹 ПРОВЕРКА НА НУЛЕВУЮ ЗАДОЛЖЕННОСТЬ
+        if float(debt_val) <= 0:
+            error_msg = ERROR_ZERO_DEBT.format(account=personal_account)
+            logger.info("alex_zero_debt", num_erip=num_erip, error=error_msg)
+            return {"_error": error_msg}    
         
         # Получаем адрес
         addr_query = text("""

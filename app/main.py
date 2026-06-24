@@ -6,12 +6,15 @@ os.environ.setdefault("LD_LIBRARY_PATH", "/usr/lib/oracle/12.2/client64/lib")
 from fastapi import FastAPI, Response, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 import structlog
+from app.db import SessionLocal 
 import xml.etree.ElementTree as ET
 from starlette.datastructures import UploadFile
 
 from app.logging_config import setup_logging
 from app.services.db_service import (
-    get_stored_response, save_transaction, update_transaction_status, get_account_info_alex
+    get_stored_response, save_transaction, update_transaction_status, 
+    get_account_info_alex, ERROR_ACCOUNT_NOT_FOUND, ERROR_ZERO_DEBT, 
+    ERROR_ACCOUNT_LOCKED
 )
 from app.services.xml_generator import (
     build_serviceinfo_response, build_transactionstart_response, 
@@ -139,7 +142,7 @@ def parse_xml(xml_input) -> dict:
     
     return data 
 
-@app.post("/", response_class=Response)
+@app.post("/healthcheck", response_class=Response)
 async def erip_endpoint(request: Request):
     """Обработчик всех входящих запросов ЕРИП"""
     form = await request.form()
@@ -198,14 +201,13 @@ async def erip_endpoint(request: Request):
             # 1. Получаем данные счёта из рабочей БД ALEX
             acc = get_account_info_alex(data["personal_account"])
             
-            # 🔹 2. ПРОВЕРКА НА ОШИБКУ (Пример 7 из PDF)
             # Безопасная проверка: acc=None ИЛИ acc содержит "_error"
             if acc is None or (isinstance(acc, dict) and acc.get("_error")):
                 # Безопасное получение сообщения об ошибке
                 if acc and isinstance(acc, dict) and "_error" in acc:
                     error_msg: str = str(acc["_error"])
                 else:
-                    error_msg = "Account not found"
+                    error_msg = "Лицевой счет не найден"
                 
                 logger.info("service_info_error", request_id=req_id, error=error_msg[:100])
                 return Response(
@@ -233,7 +235,30 @@ async def erip_endpoint(request: Request):
             acc = get_account_info_alex(data["personal_account"])
             if not acc:
                 return Response(content=build_error_response("Account not found"),
-                               media_type="text/xml; charset=windows-1251", status_code=200)
+                            media_type="text/xml; charset=windows-1251", status_code=200)
+            
+            # ПРОВЕРКА НА БЛОКИРОВКУ ОДНОВРЕМЕННОЙ ОПЛАТЫ
+            from sqlalchemy import text
+            db_check = SessionLocal()
+            try:
+                lock_query = text("""
+                    SELECT COUNT(*) 
+                    FROM transactions 
+                    WHERE personal_account = :acc 
+                    AND status = 'started'
+                    AND created_at > SYSDATE - INTERVAL '30' MINUTE
+                """)
+                active = db_check.execute(lock_query, {"acc": data["personal_account"]}).scalar() or 0
+                if active > 0:
+                    error_msg = ERROR_ACCOUNT_LOCKED.format(account=data["personal_account"])
+                    logger.warning("account_locked", account=data["personal_account"])
+                    return Response(
+                        content=build_error_response(error_msg),
+                        media_type="text/xml; charset=windows-1251", 
+                        status_code=200
+                    )
+            finally:
+                db_check.close()
 
             svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
             resp_xml = build_transactionstart_response(svc_trx_id)
@@ -269,7 +294,6 @@ async def erip_endpoint(request: Request):
             update_transaction_status(erip_trx_id, service_trx_id, status, error_text)
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
 
-        # 🔹 ИСПРАВЛЕНО: эти блоки теперь ВНУТРИ try и в цепочке elif
         elif req_type == "StornStart":
             erip_trx_id = data.get("erip_trx_id") or ""
             service_trx_id = data.get("service_trx_id") or ""

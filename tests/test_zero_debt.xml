@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<ServiceProvider_Request>
+  <RequestType>ServiceInfo</RequestType>
+  <PersonalAccount>6402603566</PersonalAccount>
+  <Currency>933</Currency>
+  <RequestId>ZERO-DEBT-004</RequestId>
+  <ServiceInfo><Agent>999</Agent></ServiceInfo>
+</ServiceProvider_Request>
