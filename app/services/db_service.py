@@ -95,81 +95,132 @@ def update_transaction_status(
     finally:
         db.close()
 
-def get_account_info_alex(personal_account: str) -> Optional[Dict[str, Any]]:
+def get_account_info_alex(personal_account: str, order_year: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
-    Получает данные счёта из рабочей схемы ALEX.
-    Возвращает None или маркер ошибки {"_error": "текст"} для Примера 7.
+    Получает данные счёта из ALEX.
+    personal_account = ORDERNUMBER, order_year = год заказа (из ParameterList с кодом 300).
     """
     db = SessionLocal()
     try:
-        try:
-            num_erip = int(personal_account.strip())
-        except ValueError:
-            logger.warning("invalid_num_erip_format", account=personal_account)
-            return None
+        # 1. Ищем IDORDER по ORDERNUMBER + году
+        if order_year:
+            idorder_query = text("""
+                SELECT IDORDER 
+                FROM ALEX.ORDERS 
+                WHERE ORDERNUMBER = :order_number
+                AND EXTRACT(YEAR FROM INDATE) = :year
+                AND ROWNUM = 1
+            """)
+            idorder_result = db.execute(
+                idorder_query, 
+                {"order_number": int(personal_account), "year": int(order_year)}
+            ).fetchone()
+        else:
+            idorder_query = text("""
+                SELECT IDORDER 
+                FROM ALEX.ORDERS 
+                WHERE ORDERNUMBER = :order_number
+                ORDER BY INDATE DESC
+                FETCH FIRST 1 ROW ONLY
+            """)
+            idorder_result = db.execute(
+                idorder_query, 
+                {"order_number": int(personal_account)}
+            ).fetchone()
         
-        # Проверяем наличие записей
-        check_query = text("""
-            SELECT COUNT(*)
-            FROM ALEX.PAYMENTS
-            WHERE NUM_ERIP = :num_erip
-        """)
-        count = db.execute(check_query, {"num_erip": num_erip}).scalar() or 0
-        
-        if count == 0:
-            # 🔹 Формируем текст ошибки ПО СПЕЦИФИКАЦИИ (Пример 7 из PDF)
-            error_msg = (
-                f"Заказ {personal_account}. "
-                f"Информация для оплаты не найдена. Проверьте номер заказа. "
-                f"vagr.by"
-            )
-            logger.info("alex_account_not_found", num_erip=num_erip, error=error_msg)
+        if not idorder_result or not idorder_result[0]:
+            error_msg = ERROR_ACCOUNT_NOT_FOUND.format(account=personal_account)
+            logger.info("alex_order_not_found", order_number=personal_account, year=order_year)
             return {"_error": error_msg}
         
-        # Считаем задолженность
+        idorder = idorder_result[0]
+        
+        # 2. Считаем задолженность по IDORDER через функцию ALEX.sum_order_nds2
         debt_query = text("""
-            SELECT NVL(SUM(SUMMA), 0)
-            FROM ALEX.PAYMENTS
-            WHERE NUM_ERIP = :num_erip
+            SELECT ALEX.sum_order_nds2(:idorder) FROM DUAL
         """)
-        debt_val = db.execute(debt_query, {"num_erip": num_erip}).scalar() or 0
-
-        # 🔹 ПРОВЕРКА НА НУЛЕВУЮ ЗАДОЛЖЕННОСТЬ
-        if float(debt_val) <= 0:
-            error_msg = ERROR_ZERO_DEBT.format(account=personal_account)
-            logger.info("alex_zero_debt", num_erip=num_erip, error=error_msg)
-            return {"_error": error_msg}    
+        debt_val = db.execute(debt_query, {"idorder": idorder}).scalar() or 0
+        logger.info("debt_calculated", idorder=idorder, debt_val=debt_val)
         
-        # Получаем адрес
+        # 3. Получаем адрес из ALEX.ORDEROBJ по IDORDER
         addr_query = text("""
-            SELECT obj.PRIMADR
-            FROM ALEX.PAYMENTS p
-            JOIN ALEX.ORDEROBJ obj ON p.IDORDER = obj.IDORDER
-            WHERE p.NUM_ERIP = :num_erip AND ROWNUM = 1
+            SELECT PRIMADR
+            FROM ALEX.ORDEROBJ
+            WHERE IDORDER = :idorder AND ROWNUM = 1
         """)
-        addr_result = db.execute(addr_query, {"num_erip": num_erip}).fetchone()
+        addr_result = db.execute(addr_query, {"idorder": idorder}).fetchone()
+        street = addr_result[0].strip() if addr_result and addr_result[0] else ""
         
-        if not addr_result or not addr_result[0]:
-            error_msg = (
-                f"Заказ {personal_account}. "
-                f"Информация для оплаты не найдена. Проверьте номер заказа. "
-                f"vagr.by"
-            )
-            return {"_error": error_msg}
+        # 4. 🔹 Получаем ФИО — ДВУМЯ ОТДЕЛЬНЫМИ ЗАПРОСАМИ для диагностики
+        logger.info("starting_fio_query", idorder=idorder)
+        
+        # Шаг 4.1: Получаем IDSUBJ из ORDERSUBJ
+        idsubj_query = text("""
+            SELECT TRIM(IDSUBJ), SUBJTYPE
+            FROM ALEX.ORDERSUBJ
+            WHERE IDORDER = :idorder
+            AND SUBJTYPE = 'F'
+            AND ROWNUM = 1
+        """)
+        idsubj_result = db.execute(idsubj_query, {"idorder": idorder}).fetchone()
+        
+        surname = "Ф***в"
+        firstname = "И."
+        patronymic = "О."
+        
+        if idsubj_result and idsubj_result[0]:
+            idfizlic = idsubj_result[0]
+            subjtype = idsubj_result[1]
+            logger.info("idsubj_found", idorder=idorder, idfizlic=idfizlic, subjtype=subjtype)
+            
+            # Шаг 4.2: Ищем ФИО в BTI.BFIZLICTMP
+            try:
+                fio_query = text("""
+                    SELECT FAM, NAIM, SNAIM
+                    FROM BTI.BFIZLIC
+                    WHERE TRIM(IDFIZLIC) = :idfizlic
+                """)
+                fio_result = db.execute(fio_query, {"idfizlic": idfizlic}).fetchone()
+                logger.info("fio_query_executed", idfizlic=idfizlic, found=fio_result is not None)
+                
+                if fio_result:
+                    raw_surname = fio_result[0].strip() if fio_result[0] else ""
+                    raw_firstname = fio_result[1].strip() if fio_result[1] else ""
+                    raw_patronymic = fio_result[2].strip() if fio_result[2] else ""
+                    
+                    if raw_surname:
+                        surname = raw_surname[0] + "***" + raw_surname[-1] if len(raw_surname) > 2 else "***"
+                    if raw_firstname:
+                        firstname = raw_firstname[0] + "."
+                    if raw_patronymic:
+                        patronymic = raw_patronymic[0] + "."
+                    
+                    logger.info("fio_extracted", 
+                               idorder=idorder, 
+                               surname=surname, 
+                               firstname=firstname, 
+                               patronymic=patronymic)
+                else:
+                    logger.warning("fio_not_found_in_bti", idfizlic=idfizlic)
+            except Exception as fio_err:
+                logger.error("fio_query_failed", 
+                           error=str(fio_err), 
+                           error_type=type(fio_err).__name__,
+                           idfizlic=idfizlic)
+        else:
+            logger.warning("idsubj_not_found", idorder=idorder)
         
         def fmt(val: float) -> str:
             return f"{val:.2f}".replace(".", ",")
-        
-        street = addr_result[0].strip() if addr_result and addr_result[0] else ""
         
         return {
             "debt": fmt(float(debt_val)),
             "editable": "Y",
             "min_amount": "0,01",
             "max_amount": "100000,00",
-            "surname": "Ф***в",
-            "firstname": "Имя",
-            "patronymic": "Отчество",
+            "surname": surname,
+            "firstname": firstname,
+            "patronymic": patronymic,
             "city": "",
             "street": street,
             "house": "",
@@ -181,6 +232,53 @@ def get_account_info_alex(personal_account: str) -> Optional[Dict[str, Any]]:
         return None
     finally:
         db.close()
+
+def record_payment_in_alex(
+    idorder: int, 
+    amount: float, 
+    num_erip: str, 
+    service_trx_id: str,
+    num_kartchek: str = ""
+) -> bool:
+    """
+    Записывает платёж в ALEX.PAYMENTS для реального списания задолженности.
+    """
+    db = SessionLocal()
+    try:
+        #  Однострочный SQL + кавычки для "NUM" + переименованный параметр :doc_num
+        insert_query = text(
+            "INSERT INTO ALEX.PAYMENTS (IDORDER, SUMMA, IDKASSA, NUM_ERIP, NUM_KARTCHEK, \"NUM\") "
+            "VALUES (:idorder, :summa, 1, :num_erip, :num_kartchek, :doc_num)"
+        )
+        
+        # Генерируем номер документа
+        doc_num = f"ERIP-{service_trx_id}" if service_trx_id else f"ERIP-{int(datetime.now().timestamp())}"
+        
+        # Явное приведение типов для cx_Oracle
+        params = {
+            "idorder": int(idorder),
+            "summa": float(amount),
+            "num_erip": int(num_erip) if num_erip and str(num_erip).isdigit() else None,
+            "num_kartchek": str(num_kartchek)[:50] if num_kartchek else None,
+            "doc_num": doc_num[:50]
+        }
+        
+        db.execute(insert_query, params)
+        db.commit()
+        
+        logger.info("payment_recorded_in_alex", 
+                   idorder=idorder, 
+                   amount=amount, 
+                   num_erip=num_erip)
+        return True
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("payment_record_error", error=str(e), idorder=idorder, exc_info=True)
+        return False
+    finally:
+        db.close()
+
 
 def save_transaction(
     req_id: str,
@@ -194,7 +292,8 @@ def save_transaction(
     terminal_type: str = "0",
     agent_code: int = 0,
     auth_type: str = "",
-    svc_trx_id: Optional[str] = None
+    svc_trx_id: Optional[str] = None,
+    order_year: Optional[str] = None 
 ) -> Optional[str]:
 
     db = SessionLocal()
@@ -207,6 +306,7 @@ def save_transaction(
             "erip_trx_id": erip_trx_id,
             "terminal_id": terminal_id,
             "terminal_type": terminal_type,
+            "order_year": order_year,
             "agent_code": agent_code,
             "auth_type": auth_type,
             "response_xml": response_xml 
@@ -237,5 +337,49 @@ def save_transaction(
         db.rollback()
         logger.error("db_insert_error", error=str(e), req_id=req_id, exc_info=True)
         return None
+    finally:
+        db.close()
+
+
+def storn_payment_in_alex(
+    idorder: int, 
+    amount: float, 
+    service_trx_id: str
+) -> bool:
+    """
+    Сторнирует платёж в ALEX.PAYMENTS — помечает запись как возвращённую.
+    Использует поля USER_VOZVRAT и DATE_VOZVRAT.
+    """
+    db = SessionLocal()
+    try:
+        # 🔹 Ищем запись о платеже по IDORDER и NUM (который содержит service_trx_id)
+        num = f"ERIP-{service_trx_id}"
+        
+        update_query = text(
+            "UPDATE ALEX.PAYMENTS "
+            "SET USER_VOZVRAT = 1, DATE_VOZVRAT = SYSDATE "
+            "WHERE IDORDER = :idorder "
+            "AND \"NUM\" = :num "
+            "AND USER_VOZVRAT IS NULL"
+        )
+        
+        result = db.execute(update_query, {
+            "idorder": int(idorder),
+            "num": num[:50]
+        })
+        db.commit()
+        
+        rows_updated = result.rowcount
+        logger.info("payment_storned_in_alex", 
+                   idorder=idorder, 
+                   num=num,
+                   rows_updated=rows_updated)
+        
+        return rows_updated > 0
+        
+    except Exception as e:
+        db.rollback()
+        logger.error("payment_storn_error", error=str(e), idorder=idorder, exc_info=True)
+        return False
     finally:
         db.close()

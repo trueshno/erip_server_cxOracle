@@ -5,13 +5,16 @@
   <DateTime>20260525150000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>5087875888</PersonalAccount>
+  <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>REAL-TEST-007</RequestId>
+  <RequestId>TEST-00021</RequestId>
   <TransactionStart>
     <Amount>800</Amount>
-    <TransactionId>87181859793</TransactionId>
+    <TransactionId>871815459712</TransactionId>
     <Agent>999</Agent>
+    <ParameterList Count="1">
+      <Parameter Idx="300">2026</Parameter>
+    </ParameterList>
     <AuthorizationType>BANK999</AuthorizationType>
   </TransactionStart>
 </ServiceProvider_Request>

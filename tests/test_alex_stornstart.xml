@@ -5,12 +5,12 @@
   <DateTime>20200601081902</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>5087875888</PersonalAccount>
+  <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>REAL-TEST-003</RequestId>
+  <RequestId>CYCLE-START-010</RequestId>
   <StornStart>
-    <TransactionId>687181859793180433</TransactionId>
-    <ServiceProvider_TrxId>21466755</ServiceProvider_TrxId>
-    <Amount>8,00</Amount>
+    <TransactionId>11122233344</TransactionId>
+    <ServiceProvider_TrxId>76642049</ServiceProvider_TrxId>
+    <Amount>9,00</Amount>
   </StornStart>
 </ServiceProvider_Request>
