@@ -48,46 +48,74 @@ def update_transaction_status(
     status: str, 
     error_text: Optional[str] = None
 ) -> bool:
-    """Обновляет статус и логирует ошибку в TRANSACTION_ERRORS при статусе failed"""
+    """
+    Обновляет статус транзакции и логирует ошибку в TRANSACTION_ERRORS при статусе failed.
+    """
     db = SessionLocal()
     try:
-        filters = []
-        if erip_trx_id:
-            filters.append(Transaction.erip_transaction_id == erip_trx_id)
-        if service_trx_id:
-            filters.append(Transaction.service_trx_id == service_trx_id)
-            
-        if not filters:
+        if not erip_trx_id and not service_trx_id:
             logger.warning("no_ids_for_status_update")
             return False
-            
-        trx = db.query(Transaction).filter(or_(*filters)).first()  # type: ignore[call-arg]
+        
+        # 🔹 1. Находим ID транзакции
+        if service_trx_id:
+            trx = db.execute(
+                text("SELECT id FROM transactions WHERE service_trx_id = :svc_id"),
+                {"svc_id": service_trx_id}
+            ).fetchone()
+        else:
+            trx = db.execute(
+                text("SELECT id FROM transactions WHERE transaction_id = :trx_id"),
+                {"trx_id": erip_trx_id}
+            ).fetchone()
+        
         if not trx:
-            logger.warning("transaction_not_found_for_update", erip_trx_id=erip_trx_id, service_trx_id=service_trx_id)
+            logger.warning("transaction_not_found_for_update", 
+                          erip_trx_id=erip_trx_id, 
+                          service_trx_id=service_trx_id)
             return False
         
-        # 1. Обновляем основную транзакцию
-        trx.status = status
-        trx.processed_at = datetime.now()
-        if error_text:
-            trx.error_text = error_text[:4000] if len(error_text) > 4000 else error_text
-            
-        # 2. 🔹 ЛОГИРОВАНИЕ ОШИБКИ В TRANSACTION_ERRORS
+        trx_id = trx[0]
+        
+        # 🔹 2. Обновляем статус прямым SQL
+        update_query = text("""
+            UPDATE transactions 
+            SET status = :status, 
+                error_text = :error_text,
+                processed_at = SYSDATE
+            WHERE id = :id
+        """)
+        
+        result = db.execute(update_query, {
+            "status": status,
+            "error_text": error_text[:4000] if error_text else None,
+            "id": trx_id
+        })
+        
+        # 🔹 3. Логируем ошибку в TRANSACTION_ERRORS
         if error_text and status == "failed":
-            # 🔹 Добавили # type: ignore[call-arg] для Pylance
             error_record = TransactionError(
-                transaction_id=trx.id,  # type: ignore[call-arg]
-                error_stage="TransactionResult",  # type: ignore[call-arg]
-                error_code=400,  # type: ignore[call-arg]
-                error_text=error_text[:4000] if len(error_text) > 4000 else error_text,  # type: ignore[call-arg]
-                created_at=datetime.now()  # type: ignore[call-arg]
+                transaction_id=trx_id, # type: ignore[call-arg]
+                error_stage="TransactionResult", # type: ignore[call-arg]
+                error_code=400, # type: ignore[call-arg]
+                error_text=error_text[:4000] if error_text else None, # type: ignore[call-arg]
+                created_at=datetime.now() # type: ignore[call-arg]
             )
             db.add(error_record)
-            logger.info("error_logged_to_db", transaction_id=trx.id, error=error_text[:50])
-            
+            logger.info("error_logged_to_db", 
+                       transaction_id=trx_id, 
+                       error=error_text[:50])
+        
         db.commit()
-        logger.info("transaction_status_updated", trx_id=trx.id, status=status)
-        return True
+        
+        rows_updated = result.rowcount
+        logger.info("transaction_status_updated", 
+                   trx_id=trx_id, 
+                   status=status,
+                   rows_updated=rows_updated)
+        
+        return rows_updated > 0
+        
     except Exception as e:
         db.rollback()
         logger.error("db_update_error", error=str(e), exc_info=True)
@@ -137,10 +165,19 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
         
         # 2. Считаем задолженность по IDORDER через функцию ALEX.sum_order_nds2
         debt_query = text("""
-            SELECT ALEX.sum_order_nds2(:idorder) FROM DUAL
+            SELECT NVL(ALEX.sum_order_nds2(:idorder), 0) - NVL(
+                (SELECT SUM(SUMMA) FROM ALEX.PAYMENTS WHERE IDORDER = :idorder), 
+                0
+            )
+            FROM DUAL
         """)
         debt_val = db.execute(debt_query, {"idorder": idorder}).scalar() or 0
         logger.info("debt_calculated", idorder=idorder, debt_val=debt_val)
+
+        # ПРОВЕРКА НА НУЛЕВОЙ ДОЛГ
+        if debt_val <= 0:
+            logger.info("zero_debt_detected", idorder=idorder, debt_val=debt_val)
+            return {"_error": ERROR_ZERO_DEBT}
         
         # 3. Получаем адрес из ALEX.ORDEROBJ по IDORDER
         addr_query = text("""
@@ -224,7 +261,8 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
             "city": "",
             "street": street,
             "house": "",
-            "apartment": ""
+            "apartment": "",
+            "idorder": idorder
         }
         
     except Exception as e:
@@ -293,7 +331,8 @@ def save_transaction(
     agent_code: int = 0,
     auth_type: str = "",
     svc_trx_id: Optional[str] = None,
-    order_year: Optional[str] = None 
+    order_year: Optional[str] = None,
+    idorder: Optional[int] = None  # 🔹 НОВЫЙ ПАРАМЕТР
 ) -> Optional[str]:
 
     db = SessionLocal()
@@ -307,30 +346,38 @@ def save_transaction(
             "terminal_id": terminal_id,
             "terminal_type": terminal_type,
             "order_year": order_year,
+            "idorder": idorder,  # 🔹 ДОБАВЛЕНО
             "agent_code": agent_code,
             "auth_type": auth_type,
-            "response_xml": response_xml 
+            "response_xml": response_xml
         }
 
         trx = Transaction(
-            erip_request_id=req_id,  # type: ignore[call-arg]
-            personal_account=account,  # type: ignore[call-arg]
-            currency=currency,  # type: ignore[call-arg]
-            amount=amount_byn,  # type: ignore[call-arg]
-            transaction_id=(erip_trx_id[:32] if erip_trx_id else None),  # type: ignore[call-arg]
-            service_trx_id=svc_trx_id,  # type: ignore[call-arg]
-            status="started" if req_type == "TransactionStart" else "success",  # type: ignore[call-arg]
-            created_at=datetime.now(),  # type: ignore[call-arg]
-            auth_type=(auth_type[:50] if auth_type else None),  # type: ignore[call-arg]
-            terminal_type=(terminal_type[:50] if terminal_type else None),  # type: ignore[call-arg]
-            metadata_json=json.dumps(metadata, ensure_ascii=False),  # type: ignore[call-arg]
-            request_type=req_type,  # type: ignore[call-arg]
-            erip_transaction_id=erip_trx_id  # type: ignore[call-arg]
+            erip_request_id=req_id, # type: ignore[call-arg]
+            personal_account=account, # type: ignore[call-arg]
+            currency=currency, # type: ignore[call-arg]
+            amount=amount_byn, # type: ignore[call-arg]
+            transaction_id=(erip_trx_id[:32] if erip_trx_id else None), # type: ignore[call-arg]
+            service_trx_id=svc_trx_id, # type: ignore[call-arg]
+            status="started" if req_type == "TransactionStart" else "success", # type: ignore[call-arg]
+            created_at=datetime.now(), # type: ignore[call-arg]
+            auth_type=(auth_type[:50] if auth_type else None), # type: ignore[call-arg]
+            terminal_type=(terminal_type[:50] if terminal_type else None), # type: ignore[call-arg]
+            metadata_json=json.dumps(metadata, ensure_ascii=False), # type: ignore[call-arg]
+            request_type=req_type, # type: ignore[call-arg]
+            erip_transaction_id=erip_trx_id, # type: ignore[call-arg]
+            order_year=order_year, # type: ignore[call-arg]
+            idorder=idorder  # type: ignore[call-arg]
+
         )
 
         db.add(trx)
         db.commit()
-        logger.info("transaction_saved", req_id=req_id, svc_trx_id=svc_trx_id)
+        logger.info("transaction_saved", 
+                   req_id=req_id, 
+                   svc_trx_id=svc_trx_id, 
+                   order_year=order_year,
+                   idorder=idorder)
         return svc_trx_id
 
     except Exception as e:
@@ -347,39 +394,35 @@ def storn_payment_in_alex(
     service_trx_id: str
 ) -> bool:
     """
-    Сторнирует платёж в ALEX.PAYMENTS — помечает запись как возвращённую.
-    Использует поля USER_VOZVRAT и DATE_VOZVRAT.
+    Сторнирует платёж в ALEX.PAYMENTS — создаёт проводку с отрицательной суммой.
     """
     db = SessionLocal()
     try:
-        # 🔹 Ищем запись о платеже по IDORDER и NUM (который содержит service_trx_id)
-        num = f"ERIP-{service_trx_id}"
-        
-        update_query = text(
-            "UPDATE ALEX.PAYMENTS "
-            "SET USER_VOZVRAT = 1, DATE_VOZVRAT = SYSDATE "
-            "WHERE IDORDER = :idorder "
-            "AND \"NUM\" = :num "
-            "AND USER_VOZVRAT IS NULL"
+        # 🔹 Создаём сторно-проводку с отрицательной суммой
+        insert_query = text(
+            "INSERT INTO ALEX.PAYMENTS (IDORDER, SUMMA, PAYDATE, \"NUM\", IDKASSA, PAYTYPE, DATEKOR, USERNAME) "
+            "VALUES (:idorder, -:amount, SYSDATE, :num, 1, 'O', SYSDATE, 'ERIP')"
         )
         
-        result = db.execute(update_query, {
+        num = f"STORN-{service_trx_id}"
+        
+        db.execute(insert_query, {
             "idorder": int(idorder),
+            "amount": float(amount),
             "num": num[:50]
         })
         db.commit()
         
-        rows_updated = result.rowcount
-        logger.info("payment_storned_in_alex", 
+        logger.info("storn_record_created_in_alex", 
                    idorder=idorder, 
-                   num=num,
-                   rows_updated=rows_updated)
+                   amount=amount,
+                   num=num)
         
-        return rows_updated > 0
+        return True
         
     except Exception as e:
         db.rollback()
-        logger.error("payment_storn_error", error=str(e), idorder=idorder, exc_info=True)
+        logger.error("storn_record_error", error=str(e), idorder=idorder, exc_info=True)
         return False
     finally:
         db.close()

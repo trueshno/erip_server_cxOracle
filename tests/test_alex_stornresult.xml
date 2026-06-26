@@ -7,10 +7,10 @@
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>RCYCLE-START-010</RequestId>
+  <RequestId>CYCLE-START-007</RequestId>
   <StornResult>
     <TransactionId>11122233344</TransactionId>
-    <ServiceProvider_TrxId>76642049</ServiceProvider_TrxId>
+    <ServiceProvider_TrxId>15423709</ServiceProvider_TrxId>
     <Amount>9,00</Amount>
     <Storned>Y</Storned>  <!-- Y = успешно, N = нет -->
   </StornResult>

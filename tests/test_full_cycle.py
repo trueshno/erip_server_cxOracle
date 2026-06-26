@@ -13,7 +13,7 @@ xml_start = '''<?xml version="1.0" encoding="windows-1251"?>
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>CYCLE-START-004</RequestId>
+  <RequestId>CYCLE-START-007</RequestId>
   <TransactionStart>
     <Amount>900</Amount>
     <TransactionId>11122233344</TransactionId>
@@ -49,7 +49,7 @@ xml_result = f'''<?xml version="1.0" encoding="windows-1251"?>
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>CYCLE-RESULT-004</RequestId>
+  <RequestId>CYCLE-RESULT-007</RequestId>
   <TransactionResult>
     <TransactionId>11122233344</TransactionId>
     <ServiceProvider_TrxId>{svc_trx_id}</ServiceProvider_TrxId>

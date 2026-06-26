@@ -259,13 +259,11 @@ async def erip_endpoint(request: Request):
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionStart":
-            # 🔹 Получаем год из data (уже распарсен в parse_xml)
             order_year = data.get("order_year")
             
             # 1. Получаем данные счёта (передаём order_year)
             acc = get_account_info_alex(data["personal_account"], order_year)
             
-            # 🔹 Безопасная проверка (как в ServiceInfo)
             if acc is None or (isinstance(acc, dict) and acc.get("_error")):
                 if acc and isinstance(acc, dict) and "_error" in acc:
                     error_msg = str(acc["_error"])
@@ -278,6 +276,13 @@ async def erip_endpoint(request: Request):
                     media_type="text/xml; charset=windows-1251",
                     status_code=200
                 )
+            
+            # 🔹 ИЗВЛЕКАЕМ IDORDER ИЗ acc
+            idorder = acc.get("idorder")
+            logger.info("transaction_start_idorder", 
+                       idorder=idorder, 
+                       order_year=order_year,
+                       personal_account=data["personal_account"])
             
             # ПРОВЕРКА НА БЛОКИРОВКУ ОДНОВРЕМЕННОЙ ОПЛАТЫ
             from sqlalchemy import text
@@ -315,7 +320,8 @@ async def erip_endpoint(request: Request):
                 agent_code=int(data.get("agent", 0) or 0), 
                 auth_type=data.get("auth_type", ""),
                 svc_trx_id=svc_trx_id,
-                order_year=order_year 
+                order_year=order_year,
+                idorder=idorder  # 🔹 ПЕРЕДАЁМ IDORDER
             )
             return Response(content=resp_xml, 
                            media_type="text/xml; charset=windows-1251", status_code=200)

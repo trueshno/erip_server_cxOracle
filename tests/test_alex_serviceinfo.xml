@@ -5,13 +5,13 @@
   <DateTime>20260525150000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>31620</PersonalAccount>
+  <PersonalAccount>11456</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-00020</RequestId>
+  <RequestId>TEST-0000</RequestId>
   <ServiceInfo>
     <Agent>999</Agent>
         <ParameterList Count="1">
-      <Parameter Idx="300">2026</Parameter>
+      <Parameter Idx="300">2025</Parameter>
     </ParameterList>
   </ServiceInfo>
 </ServiceProvider_Request>
