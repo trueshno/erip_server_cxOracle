@@ -24,6 +24,8 @@ class Transaction(Base):
     metadata_json = Column("metadata_json", CLOB)
     auth_type = Column("auth_type", String(50))
     terminal_type = Column("terminal_type", String(50))
+    order_year = Column(String(4))
+    idorder = Column(Integer)
 
 class Account(Base):
     __tablename__ = "accounts"
