@@ -2,16 +2,13 @@
 <ServiceProvider_Request>
   <Version>1</Version>
   <RequestType>ServiceInfo</RequestType>
-  <DateTime>20260525150000</DateTime>
+  <DateTime>20260626120000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>11456</PersonalAccount>
+  <PersonalAccount>31620/26</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-0000</RequestId>
+  <RequestId>TEST-0004</RequestId>
   <ServiceInfo>
     <Agent>999</Agent>
-        <ParameterList Count="1">
-      <Parameter Idx="300">2025</Parameter>
-    </ParameterList>
   </ServiceInfo>
 </ServiceProvider_Request>

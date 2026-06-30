@@ -9,8 +9,8 @@ from app.models import Transaction, Account, TransactionError
 from app.db import SessionLocal
 
 ERROR_ACCOUNT_NOT_FOUND = "Заказ {account}. Информация для оплаты не найдена. Проверьте номер заказа. vagr.by"
-ERROR_ZERO_DEBT = "Заказ {account}. Оплата при нулевой задолженности запрещена. vagr.by"
-ERROR_ACCOUNT_LOCKED = "Оплата по счету {account} временно заблокирована. vagr.by"
+ERROR_ZERO_DEBT = "Заказ {account}. Информация для оплаты не найдена. Проверьте номер заказа. vagr.by"
+ERROR_ACCOUNT_LOCKED = "Оплата по счету {account} временно заблокирована. Повторите платеж позже. vagr.by"
 
 logger = structlog.get_logger()
 
@@ -332,7 +332,7 @@ def save_transaction(
     auth_type: str = "",
     svc_trx_id: Optional[str] = None,
     order_year: Optional[str] = None,
-    idorder: Optional[int] = None  # 🔹 НОВЫЙ ПАРАМЕТР
+    idorder: Optional[int] = None 
 ) -> Optional[str]:
 
     db = SessionLocal()
@@ -346,7 +346,7 @@ def save_transaction(
             "terminal_id": terminal_id,
             "terminal_type": terminal_type,
             "order_year": order_year,
-            "idorder": idorder,  # 🔹 ДОБАВЛЕНО
+            "idorder": idorder, 
             "agent_code": agent_code,
             "auth_type": auth_type,
             "response_xml": response_xml

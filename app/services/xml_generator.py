@@ -11,20 +11,7 @@ def _mask_name(full_name: str) -> str:
         return full_name or ""
     return full_name[0] + "***" + full_name[-1]
 
-# def _mask_city(city: str) -> str:
-#     # Маска город
-#     if not city or len(city) < 2:
-#         return city or ""
-#     return city[0] + "***" + city[-1]
-
-# def _mask_street(street: str) -> str:
-#     # Маска улица
-#     if not street or len(street) < 2:
-#         return street or ""
-#     return street[0] + "***" + street[-1]
-
 def _escape_xml(text: str) -> str:
-    # Экранирование
     if not text:
         return ""
     return (str(text)
@@ -57,10 +44,6 @@ def build_serviceinfo_response(acc: dict) -> bytes:
     surname = _mask_name(acc.get("surname") or "")
     firstname = acc.get("firstname") or ""
     patronymic = acc.get("patronymic") or ""
-    # city = _mask_city(acc.get("city") or "")
-    # street = acc.get("street") or ""
-    # house = acc.get("house") or ""
-    # apartment = acc.get("apartment") or ""
     
     xml = (
         '<?xml version="1.0" encoding="windows-1251"?>\n'

@@ -39,7 +39,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content='<?xml version="1.0" encoding="windows-1251"?>\n'
                 '<ServiceProvider_Response>\n'
                 '  <Error>\n'
-                '    <ErrorLine>Внутренняя ошибка сервера</ErrorLine>\n'
+                '    <ErrorLine>Сервер vagr.by временно недоступен. Повторите платеж позже. </ErrorLine>\n'
                 '  </Error>\n'
                 '</ServiceProvider_Response>',
         media_type="text/xml; charset=windows-1251",
@@ -94,10 +94,24 @@ def parse_xml(xml_input) -> dict:
     root = ET.fromstring(xml_str.strip())
     terminal_elem = root.find(".//Terminal")
     
+    # 🔹 ИЗВЛЕКАЕМ PERSONAL_ACCOUNT И РАЗБИРАЕМ ФОРМАТ номер/год
+    personal_account_raw = root.findtext("PersonalAccount") or ""
+    
+    if "/" in personal_account_raw:
+        parts = personal_account_raw.split("/")
+        personal_account = parts[0].strip()
+        year_suffix = parts[1].strip()
+        # Преобразуем 26 -> 2026
+        order_year = f"20{year_suffix}" if len(year_suffix) == 2 else year_suffix
+    else:
+        personal_account = personal_account_raw.strip()
+        order_year = None
+    
     data = {
         "request_type": root.findtext("RequestType"),
         "request_id": root.findtext("RequestId"),
-        "personal_account": root.findtext("PersonalAccount"),
+        "personal_account": personal_account,
+        "order_year": order_year,
         "currency": root.findtext("Currency"),
         "terminal_id": root.findtext("Terminal"),
         "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
@@ -109,19 +123,7 @@ def parse_xml(xml_input) -> dict:
     if req_type == "ServiceInfo":
         agent_el = root.find(".//ServiceInfo/Agent")
         data["agent"] = agent_el.text.strip() if (agent_el is not None and agent_el.text) else None
-        
-        # 🔹 Извлечение года заказа из ParameterList
-        param_list = root.find(".//ServiceInfo/ParameterList")
-        if param_list is not None:
-            for param in param_list.findall(".//Parameter"):
-                idx = param.get("Idx")
-                if idx == "300" and param.text:  # Код 300 = год заказа
-                    data["order_year"] = param.text.strip()
-                elif idx and param.text:
-                    # Сохраняем другие параметры если нужно
-                    data[f"param_{idx}"] = param.text.strip()
-        else:
-            data["order_year"] = None
+        # 🔹 ParameterList больше не нужен для года
         
     elif req_type == "TransactionStart":
         amount_el = root.find(".//TransactionStart/Amount")
@@ -132,17 +134,7 @@ def parse_xml(xml_input) -> dict:
             data["amount_byn"] = 0.0
         data["erip_trx_id"] = root.findtext(".//TransactionStart/TransactionId")
         data["auth_type"] = root.findtext(".//TransactionStart/AuthorizationType")
-        
-        # 🔹 Извлечение года заказа из ParameterList (как в ServiceInfo)
-        param_list = root.find(".//TransactionStart/ParameterList")
-        if param_list is not None:
-            for param in param_list.findall(".//Parameter"):
-                idx = param.get("Idx")
-                if idx == "300" and param.text:
-                    data["order_year"] = param.text.strip()
-                    break
-        else:
-            data["order_year"] = None
+        # 🔹 ParameterList больше не нужен для года
         
     elif req_type == "TransactionResult":
         data["erip_trx_id"] = root.findtext(".//TransactionResult/TransactionId")
@@ -164,7 +156,7 @@ def parse_xml(xml_input) -> dict:
         storned_el = root.find(".//StornResult/Storned")
         data["storned"] = storned_el.text.strip() if (storned_el is not None and storned_el.text) else None
     
-    return data 
+    return data
 
 @app.post("/healthcheck", response_class=Response)
 async def erip_endpoint(request: Request):
