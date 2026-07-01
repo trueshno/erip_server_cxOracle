@@ -182,7 +182,7 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
         # ПРОВЕРКА НА НУЛЕВОЙ ДОЛГ
         if debt_val <= 0:
             logger.info("zero_debt_detected", idorder=idorder, debt_val=debt_val)
-            return {"_error": ERROR_ZERO_DEBT}
+            return {"_error": ERROR_ZERO_DEBT.format(account=personal_account)}
         
         # 3. Получаем адрес из ALEX.ORDEROBJ по IDORDER
         addr_query = text("""

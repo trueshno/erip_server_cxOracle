@@ -7,9 +7,9 @@
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>31620</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-00021</RequestId>
+  <RequestId>TEST-0005</RequestId>
   <TransactionResult>
-    <TransactionId>871815459712</TransactionId>  
-    <ServiceProvider_TrxId>06950851</ServiceProvider_TrxId>
+    <TransactionId>11122233344</TransactionId>  
+    <ServiceProvider_TrxId>90258013</ServiceProvider_TrxId>
   </TransactionResult>
 </ServiceProvider_Request>
