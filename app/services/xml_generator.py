@@ -82,7 +82,12 @@ def build_transactionstart_response(svc_trx_id: str) -> bytes:
     )
     return xml.encode("windows-1251", errors="replace")
 
-def build_transactionresult_response(success: bool, custom_lines: Optional[List[str]] = None) -> bytes:
+def build_transactionresult_response(
+    success: bool, 
+    order_number: Optional[str] = None,
+    payment_date: Optional[str] = None,
+    custom_lines: Optional[List[str]] = None
+) -> bytes:
     """
     Генерация ответа TransactionResult в windows-1251.
     Упрощённый формат: только статус оплаты.
@@ -90,9 +95,9 @@ def build_transactionresult_response(success: bool, custom_lines: Optional[List[
     if custom_lines:
         info_lines = custom_lines
     elif success:
-        info_lines = ["Задолженность оплачена"]
+        info_lines = [f"Заказ {order_number} оплачен {payment_date}"]
     else:
-        info_lines = ["Оплата аннулирована!"]
+        info_lines = ["Оплата аннулирована"]
     
     lines_xml = "\n".join(f"      <InfoLine>{_escape_xml(line)}</InfoLine>" for line in info_lines)
     
@@ -109,7 +114,6 @@ def build_transactionresult_response(success: bool, custom_lines: Optional[List[
     return xml.encode("windows-1251", errors="replace")
 
 def build_error_response(error_message: str) -> bytes:
-    # Генерация ответа с ошибкой пример 7"""
     lines = error_message.split('\n') if '\n' in error_message else [error_message]
     lines_xml = "\n".join(f"    <ErrorLine>{_escape_xml(line)}</ErrorLine>" for line in lines)
     

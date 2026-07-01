@@ -11,6 +11,11 @@ from app.db import SessionLocal
 ERROR_ACCOUNT_NOT_FOUND = "Заказ {account}. Информация для оплаты не найдена. Проверьте номер заказа. vagr.by"
 ERROR_ZERO_DEBT = "Заказ {account}. Информация для оплаты не найдена. Проверьте номер заказа. vagr.by"
 ERROR_ACCOUNT_LOCKED = "Оплата по счету {account} временно заблокирована. Повторите платеж позже. vagr.by"
+ERROR_INVALID_FORMAT = (
+    f"Неверно указан номер заказа\n"
+    f"Номер заказа должен содержать 5 цифр и последние две цифры года через /\n"
+    f"Проверьте номер заказа. vagr.by"
+)
 
 logger = structlog.get_logger()
 

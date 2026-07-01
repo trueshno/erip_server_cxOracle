@@ -196,6 +196,36 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Invalid XML"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
+    req_id = data.get("request_id")
+    req_type = data.get("request_type")
+    
+    if not req_id or not req_type:
+        return Response(content=build_error_response("Missing required fields"), 
+                       media_type="text/xml; charset=windows-1251", status_code=200)
+
+    # ПРОВЕРКА ФОРМАТА НОМЕРА ЗАКАЗА (кроме StornStart/StornResult)
+    if req_type in ("ServiceInfo", "TransactionStart"):
+        personal_account = data.get("personal_account", "")
+        order_year = data.get("order_year")
+        
+        if not personal_account.isdigit() or len(personal_account) != 5:
+            from app.services.db_service import ERROR_INVALID_FORMAT
+            logger.warning("invalid_account_format", personal_account=personal_account)
+            return Response(
+                content=build_error_response(ERROR_INVALID_FORMAT),
+                media_type="text/xml; charset=windows-1251",
+                status_code=200
+            )
+        
+        if not order_year or not order_year.isdigit() or len(order_year) != 4:
+            from app.services.db_service import ERROR_INVALID_FORMAT
+            logger.warning("invalid_year_format", order_year=order_year)
+            return Response(
+                content=build_error_response(ERROR_INVALID_FORMAT),
+                media_type="text/xml; charset=windows-1251",
+                status_code=200
+            )
+
     # 3. Теперь извлекаем req_id и req_type (после парсинга!)
     req_id = data.get("request_id")
     req_type = data.get("request_type")
@@ -328,7 +358,17 @@ async def erip_endpoint(request: Request):
                 resp_xml = build_transactionresult_response(success=False)
             else:
                 status = "success"
-                resp_xml = build_transactionresult_response(success=True)
+                
+                # Формируем дату платежа в формате ДД.ММ.ГГГГ
+                from datetime import datetime
+                payment_date = datetime.now().strftime("%d.%m.%Y")
+                
+                resp_xml = build_transactionresult_response(
+                    success=True,
+                    order_number=data["personal_account"],
+                    payment_date=payment_date
+                )
+                
                 logger.info("transaction_result_success", request_id=req_id)
                 
                 db_trx = SessionLocal()

@@ -2,16 +2,13 @@
 <ServiceProvider_Request>
   <Version>1</Version>
   <RequestType>ServiceInfo</RequestType>
-  <DateTime>20200601153456</DateTime>
+  <DateTime>20260626120000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>5032600887</PersonalAccount>
+  <PersonalAccount>31620/266</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>REAL-TEST-004</RequestId>
+  <RequestId>TEST-0006</RequestId>
   <ServiceInfo>
     <Agent>999</Agent>
-    <Amount>
-      <Debt>30,21</Debt>  <!-- Сумма от клиента (игнорировать) -->
-    </Amount>
   </ServiceInfo>
 </ServiceProvider_Request>
