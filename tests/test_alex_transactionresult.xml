@@ -4,12 +4,12 @@
   <RequestType>TransactionResult</RequestType>
   <DateTime>20200601155800</DateTime>
   <Terminal Type="5">55411</Terminal>
-  <ServiceNo>200011</ServiceNo>
+  <ServiceNo>20001</ServiceNo>
   <PersonalAccount>72345/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-010</RequestId>
+  <RequestId>TEST-014</RequestId>
   <TransactionResult>
-    <TransactionId>11122233344</TransactionId>  
-    <ServiceProvider_TrxId>23775633</ServiceProvider_TrxId>
+    <TransactionId>717129117</TransactionId>  
+    <ServiceProvider_TrxId>70076802</ServiceProvider_TrxId>
   </TransactionResult>
 </ServiceProvider_Request>

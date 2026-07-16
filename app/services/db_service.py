@@ -373,7 +373,6 @@ def save_transaction(
             erip_transaction_id=erip_trx_id, # type: ignore[call-arg]
             order_year=order_year, # type: ignore[call-arg]
             idorder=idorder  # type: ignore[call-arg]
-
         )
 
         db.add(trx)
@@ -391,7 +390,6 @@ def save_transaction(
         return None
     finally:
         db.close()
-
 
 def storn_payment_in_alex(
     idorder: int, 

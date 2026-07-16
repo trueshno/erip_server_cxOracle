@@ -123,18 +123,21 @@ def parse_xml(xml_input) -> dict:
     if req_type == "ServiceInfo":
         agent_el = root.find(".//ServiceInfo/Agent")
         data["agent"] = agent_el.text.strip() if (agent_el is not None and agent_el.text) else None
-        # 🔹 ParameterList больше не нужен для года
         
     elif req_type == "TransactionStart":
         amount_el = root.find(".//TransactionStart/Amount")
         amount_raw = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
         try:
-            data["amount_byn"] = int(amount_raw) / 100.0
+            # 🔹 ЕРИП присылает сумму с запятой (например, "8,40")
+            # Заменяем запятую на точку для корректного преобразования в float
+            amount_clean = amount_raw.replace(",", ".")
+            data["amount_byn"] = float(amount_clean)
         except ValueError:
+            logger.warning("invalid_amount_format", amount_raw=amount_raw)
             data["amount_byn"] = 0.0
+            
         data["erip_trx_id"] = root.findtext(".//TransactionStart/TransactionId")
         data["auth_type"] = root.findtext(".//TransactionStart/AuthorizationType")
-        # 🔹 ParameterList больше не нужен для года
         
     elif req_type == "TransactionResult":
         data["erip_trx_id"] = root.findtext(".//TransactionResult/TransactionId")
@@ -146,13 +149,22 @@ def parse_xml(xml_input) -> dict:
         data["erip_trx_id"] = root.findtext(".//StornStart/TransactionId")
         data["service_trx_id"] = root.findtext(".//StornStart/ServiceProvider_TrxId")
         amount_el = root.find(".//StornStart/Amount")
-        data["amount_raw"] = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
-        
+        amount_raw = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
+        try:
+            data["amount_raw"] = float(amount_raw.replace(",", "."))
+        except ValueError:
+            data["amount_raw"] = "0"
+            
     elif req_type == "StornResult":
         data["erip_trx_id"] = root.findtext(".//StornResult/TransactionId")
         data["service_trx_id"] = root.findtext(".//StornResult/ServiceProvider_TrxId")
         amount_el = root.find(".//StornResult/Amount")
-        data["amount_raw"] = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
+        amount_raw = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
+        try:
+            data["amount_raw"] = float(amount_raw.replace(",", "."))
+        except ValueError:
+            data["amount_raw"] = "0"
+            
         storned_el = root.find(".//StornResult/Storned")
         data["storned"] = storned_el.text.strip() if (storned_el is not None and storned_el.text) else None
     
@@ -343,7 +355,7 @@ async def erip_endpoint(request: Request):
                 auth_type=data.get("auth_type", ""),
                 svc_trx_id=svc_trx_id,
                 order_year=order_year,
-                idorder=idorder  # 🔹 ПЕРЕДАЁМ IDORDER
+                idorder=idorder
             )
             return Response(content=resp_xml, 
                            media_type="text/xml; charset=windows-1251", status_code=200)
@@ -381,7 +393,7 @@ async def erip_endpoint(request: Request):
                         {"svc_id": service_trx_id}
                     ).fetchone()
                     
-                    if trx and trx[1] > 0:
+                    if trx and trx[1] >= 0:
                         personal_account, amount, order_year = trx
                         
                         # 🔹 НАХОДИМ IDORDER ПО ORDERNUMBER + ГОДУ

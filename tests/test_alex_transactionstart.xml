@@ -7,10 +7,10 @@
   <ServiceNo>20001</ServiceNo>
   <PersonalAccount>72345/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-010</RequestId>
+  <RequestId>TEST-014</RequestId>
   <TransactionStart>
-    <Amount>840</Amount>
-    <TransactionId>11122233344</TransactionId>
+    <Amount>8,4</Amount>
+    <TransactionId>717129117</TransactionId>
     <Agent>999</Agent>
     <AuthorizationType>MS</AuthorizationType>
   </TransactionStart>
