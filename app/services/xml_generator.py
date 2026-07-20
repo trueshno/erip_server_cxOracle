@@ -40,7 +40,7 @@ def build_serviceinfo_response(acc: dict) -> bytes:
         return xml.encode("windows-1251", errors="replace")
     
     debt = acc.get("debt") or "0,00"
-    editable = acc.get("editable") or "Y"
+    # editable = acc.get("editable") or "Y"
     surname = _mask_name(acc.get("surname") or "")
     firstname = acc.get("firstname") or ""
     patronymic = acc.get("patronymic") or ""
@@ -49,7 +49,7 @@ def build_serviceinfo_response(acc: dict) -> bytes:
         '<?xml version="1.0" encoding="windows-1251"?>\n'
         '<ServiceProvider_Response>\n'
         '  <ServiceInfo>\n'
-        f'    <Amount Editable="{editable}">\n'
+        f'    <Amount Editable="N" MinAmount="{debt}" MaxAmount="{debt}">\n'
         f'      <Debt>{debt}</Debt>\n'
         '    </Amount>\n'
         '    <Name>\n'

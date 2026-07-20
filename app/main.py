@@ -311,6 +311,38 @@ async def erip_endpoint(request: Request):
                     status_code=200
                 )
             
+                        # 🔹 ПРОВЕРКА: сумма не должна превышать долг
+            debt_float = float(acc.get("debt", "0").replace(",", "."))
+            amount_byn = data.get("amount_byn", 0.0)
+            
+            if amount_byn > debt_float:
+                error_msg = (
+                    f"Сумма платежа превышает задолженность\n"
+                    f"Сумма платежа максимум {acc['debt']} BYN\n"
+                    f"Изменение суммы операции запрещено"
+                )
+                logger.warning("amount_exceeds_debt", 
+                              amount=amount_byn, 
+                              debt=debt_float)
+                return Response(
+                    content=build_error_response(error_msg),
+                    media_type="text/xml; charset=windows-1251",
+                    status_code=200
+                )
+            
+            if amount_byn <= 0:
+                error_msg = (
+                    f"Сумма платежа минимум 0,01 BYN\n"
+                    f"Скорректируйте сумму и повторите платеж"
+                )
+                logger.warning("zero_or_negative_amount", amount=amount_byn)
+                return Response(
+                    content=build_error_response(error_msg),
+                    media_type="text/xml; charset=windows-1251",
+                    status_code=200
+                )
+
+
             # 🔹 ИЗВЛЕКАЕМ IDORDER ИЗ acc
             idorder = acc.get("idorder")
             logger.info("transaction_start_idorder", 

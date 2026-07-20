@@ -7,11 +7,11 @@
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>72345/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-014</RequestId>
+  <RequestId>38393577</RequestId>
   <StornResult>
-    <TransactionId>717129117</TransactionId>
-    <ServiceProvider_TrxId>70076802</ServiceProvider_TrxId>
-    <Amount>8,40</Amount>
+    <TransactionId>717129479</TransactionId>
+    <ServiceProvider_TrxId>41732370</ServiceProvider_TrxId>
+    <Amount>8,4</Amount>
     <Storned>Y</Storned>  <!-- Y = успешно, N = нет -->
   </StornResult>
 </ServiceProvider_Request>

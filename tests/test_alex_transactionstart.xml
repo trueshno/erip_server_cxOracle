@@ -5,12 +5,12 @@
   <DateTime>20260626120000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>20001</ServiceNo>
-  <PersonalAccount>72345/25</PersonalAccount>
+  <PersonalAccount>72340/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-014</RequestId>
+  <RequestId>TEST-016</RequestId>
   <TransactionStart>
-    <Amount>8,4</Amount>
-    <TransactionId>717129117</TransactionId>
+    <Amount>100</Amount>
+    <TransactionId>717129115</TransactionId>
     <Agent>999</Agent>
     <AuthorizationType>MS</AuthorizationType>
   </TransactionStart>

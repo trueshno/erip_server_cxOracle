@@ -5,11 +5,11 @@
   <DateTime>20200601155800</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>20001</ServiceNo>
-  <PersonalAccount>72345/25</PersonalAccount>
+  <PersonalAccount>72340/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-014</RequestId>
+  <RequestId>TEST-016</RequestId>
   <TransactionResult>
-    <TransactionId>717129117</TransactionId>  
-    <ServiceProvider_TrxId>70076802</ServiceProvider_TrxId>
+    <TransactionId>717129115</TransactionId>  
+    <ServiceProvider_TrxId>95563753</ServiceProvider_TrxId>
   </TransactionResult>
 </ServiceProvider_Request>
