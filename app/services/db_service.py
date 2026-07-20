@@ -33,9 +33,9 @@ def get_stored_response(request_id: str, request_type: str) -> Optional[str]:
             Transaction.request_type == request_type
         ).first()  # type: ignore[call-arg]
         
-        if row and row.metadata_json:
+        if row and row.metadata_json:  # type: ignore
             try:
-                meta = json.loads(row.metadata_json)
+                meta = json.loads(row.metadata_json) # type: ignore
                 return meta.get("response_xml")
             except (json.JSONDecodeError, TypeError):
                 logger.warning("cache_parse_error", request_id=request_id, request_type=request_type)
@@ -343,7 +343,8 @@ def save_transaction(
     db = SessionLocal()
     try:
         if svc_trx_id is None:
-            svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
+            # Генерируем случайное число от 10 000 000 до 99 999 999, чтобы не начинался с 0
+            svc_trx_id = str(secrets.randbelow(90000000) + 10000000)
 
         metadata = {
             "request_type": req_type,

@@ -7,10 +7,10 @@
   <ServiceNo>1</ServiceNo>
   <PersonalAccount>31620/26</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-0005</RequestId>
+  <RequestId>TEST-019</RequestId>
   <TransactionResult>
-    <TransactionId>11122233344</TransactionId>  
-    <ServiceProvider_TrxId>90258013</ServiceProvider_TrxId>
+    <TransactionId>717129113</TransactionId>  
+    <ServiceProvider_TrxId>96197000</ServiceProvider_TrxId>
     <ErrorText>Операция отменена</ErrorText>
   </TransactionResult>
 </ServiceProvider_Request>
