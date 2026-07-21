@@ -12,8 +12,8 @@ def setup_logging(level: str = "INFO"):
         level=level.upper(),
         format="%(message)s",
         handlers=[
-            logging.StreamHandler(),  # Вывод в консоль/терминал
-            logging.FileHandler(log_file, encoding="utf-8")  # Вывод в файл
+            logging.StreamHandler(),
+            logging.FileHandler(log_file, encoding="utf-8")
         ]
     )
 

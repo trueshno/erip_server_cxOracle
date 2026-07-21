@@ -38,11 +38,6 @@ class Account(Base):
     holder_surname = Column("holder_surname", String(30))
     holder_firstname = Column("holder_firstname", String(30))
     holder_patronymic = Column("holder_patronymic", String(30))
-    # city = Column("city", String(30))
-    # street = Column("street", String(30))
-    # house = Column("house", String(10))
-    # building = Column("building", String(10))
-    # apartment = Column("apartment", String(10))
     currency = Column("currency", String(3), default="933")
     service_no = Column("service_no", Integer, default=1)
 

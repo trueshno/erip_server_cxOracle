@@ -62,7 +62,7 @@ def update_transaction_status(
             logger.warning("no_ids_for_status_update")
             return False
         
-        # 🔹 1. Находим ID транзакции
+        # Находим ID транзакции
         if service_trx_id:
             trx = db.execute(
                 text("SELECT id FROM transactions WHERE service_trx_id = :svc_id"),
@@ -82,7 +82,7 @@ def update_transaction_status(
         
         trx_id = trx[0]
         
-        # 🔹 2. Обновляем статус прямым SQL
+        # Обновляем статус прямым SQL
         update_query = text("""
             UPDATE transactions 
             SET status = :status, 
@@ -97,7 +97,7 @@ def update_transaction_status(
             "id": trx_id
         })
         
-        # 🔹 3. Логируем ошибку в TRANSACTION_ERRORS
+        # Логируем ошибку в TRANSACTION_ERRORS
         if error_text and status == "failed":
             error_record = TransactionError(
                 transaction_id=trx_id, # type: ignore[call-arg]
@@ -131,11 +131,11 @@ def update_transaction_status(
 def get_account_info_alex(personal_account: str, order_year: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Получает данные счёта из ALEX.
-    personal_account = ORDERNUMBER, order_year = год заказа (из ParameterList с кодом 300).
+    personal_account = ORDERNUMBER, order_year = год заказа
     """
     db = SessionLocal()
     try:
-        # 1. Ищем IDORDER по ORDERNUMBER + году
+        # Ищем IDORDER по ORDERNUMBER + году
         if order_year:
             idorder_query = text("""
                 SELECT IDORDER 
@@ -168,7 +168,7 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
         
         idorder = idorder_result[0]
         
-        # 2. Считаем задолженность по IDORDER через функцию ALEX.sum_order_nds2
+        # Считаем задолженность по IDORDER через функцию ALEX.sum_order_nds2
         debt_query = text("""
             SELECT NVL(ALEX.sum_order_nds2(:idorder), 0) - NVL(
                 (SELECT SUM(SUMMA) FROM ALEX.PAYMENTS WHERE IDORDER = :idorder), 
@@ -179,12 +179,12 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
         debt_val = db.execute(debt_query, {"idorder": idorder}).scalar() or 0
         logger.info("debt_calculated", idorder=idorder, debt_val=debt_val)
 
-        # ПРОВЕРКА НА НУЛЕВОЙ ДОЛГ
+        # Проверка на нулевой долг
         if debt_val <= 0:
             logger.info("zero_debt_detected", idorder=idorder, debt_val=debt_val)
             return {"_error": ERROR_ZERO_DEBT.format(account=personal_account)}
         
-        # 3. Получаем адрес из ALEX.ORDEROBJ по IDORDER
+        # Получаем адрес из ALEX.ORDEROBJ по IDORDER
         addr_query = text("""
             SELECT PRIMADR
             FROM ALEX.ORDEROBJ
@@ -193,10 +193,10 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
         addr_result = db.execute(addr_query, {"idorder": idorder}).fetchone()
         street = addr_result[0].strip() if addr_result and addr_result[0] else ""
         
-        # 4. 🔹 Получаем ФИО — ДВУМЯ ОТДЕЛЬНЫМИ ЗАПРОСАМИ для диагностики
+        # Получаем ФИО — двумя отдельными запросами
         logger.info("starting_fio_query", idorder=idorder)
         
-        # Шаг 4.1: Получаем IDSUBJ из ORDERSUBJ
+        # Получаем IDSUBJ из ORDERSUBJ
         idsubj_query = text("""
             SELECT TRIM(IDSUBJ), SUBJTYPE
             FROM ALEX.ORDERSUBJ
@@ -215,7 +215,7 @@ def get_account_info_alex(personal_account: str, order_year: Optional[str] = Non
             subjtype = idsubj_result[1]
             logger.info("idsubj_found", idorder=idorder, idfizlic=idfizlic, subjtype=subjtype)
             
-            # Шаг 4.2: Ищем ФИО в BTI.BFIZLICTMP
+            # Ищем ФИО в BTI.BFIZLICTMP
             try:
                 fio_query = text("""
                     SELECT FAM, NAIM, SNAIM
@@ -284,7 +284,7 @@ def record_payment_in_alex(
     num_kartchek: str = ""
 ) -> bool:
     """
-    Записывает платёж в ALEX.PAYMENTS для реального списания задолженности.
+    Записывает платёж в ALEX.PAYMENTS для реального списания задолженности
     """
     db = SessionLocal()
     try:
@@ -321,7 +321,6 @@ def record_payment_in_alex(
         return False
     finally:
         db.close()
-
 
 def save_transaction(
     req_id: str,
@@ -402,7 +401,7 @@ def storn_payment_in_alex(
     """
     db = SessionLocal()
     try:
-        # 🔹 Создаём сторно-проводку с отрицательной суммой
+        # Создаём сторно-проводку с отрицательной суммой
         insert_query = text(
             "INSERT INTO ALEX.PAYMENTS (IDORDER, SUMMA, PAYDATE, \"NUM\", IDKASSA, PAYTYPE, DATEKOR, USERNAME) "
             "VALUES (:idorder, -:amount, SYSDATE, :num, 1, 'O', SYSDATE, 'ERIP')"

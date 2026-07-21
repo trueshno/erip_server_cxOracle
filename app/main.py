@@ -94,7 +94,7 @@ def parse_xml(xml_input) -> dict:
     root = ET.fromstring(xml_str.strip())
     terminal_elem = root.find(".//Terminal")
     
-    # 🔹 ИЗВЛЕКАЕМ PERSONAL_ACCOUNT И РАЗБИРАЕМ ФОРМАТ номер/год
+    # формат номер/год
     personal_account_raw = root.findtext("PersonalAccount") or ""
     
     if "/" in personal_account_raw:
@@ -128,7 +128,6 @@ def parse_xml(xml_input) -> dict:
         amount_el = root.find(".//TransactionStart/Amount")
         amount_raw = amount_el.text.strip() if (amount_el is not None and amount_el.text) else "0"
         try:
-            # 🔹 ЕРИП присылает сумму с запятой (например, "8,40")
             # Заменяем запятую на точку для корректного преобразования в float
             amount_clean = amount_raw.replace(",", ".")
             data["amount_byn"] = float(amount_clean)
@@ -200,7 +199,7 @@ async def erip_endpoint(request: Request):
     
     logger.info("request_received", xml_len=len(xml_content))
     
-    # 2. Парсим XML
+    # Парсим XML
     try:
         data = parse_xml(xml_content)
     except Exception as e:
@@ -215,7 +214,7 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Missing required fields"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # ПРОВЕРКА ФОРМАТА НОМЕРА ЗАКАЗА (кроме StornStart/StornResult)
+    # Проверка номера заказа (кроме StornStart/StornResult)
     if req_type in ("ServiceInfo", "TransactionStart"):
         personal_account = data.get("personal_account", "")
         order_year = data.get("order_year")
@@ -238,7 +237,7 @@ async def erip_endpoint(request: Request):
                 status_code=200
             )
 
-    # 3. Теперь извлекаем req_id и req_type (после парсинга!)
+    # Теперь извлекаем req_id и req_type
     req_id = data.get("request_id")
     req_type = data.get("request_type")
     
@@ -246,25 +245,23 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Missing required fields"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # 4. Проверка идемпотентности по паре (RequestId, RequestType)
+    # Проверка идемпотентности по паре (RequestId, RequestType)
     stored = get_stored_response(req_id, req_type)
     if stored:
         logger.info("idempotent_hit", request_id=req_id, request_type=req_type)
         return Response(content=stored.encode("windows-1251"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
-    # 5. Бизнес-логика по типам запросов
+    # Бизнес-логика
     try:
         if req_type == "ServiceInfo":
             # Получаем год из параметров
             order_year = data.get("order_year")
             
-            # 1. Получаем данные счёта из рабочей БД ALEX
+            # Получаем данные счёта из БД ALEX
             acc = get_account_info_alex(data["personal_account"], order_year)
             
-            # Безопасная проверка: acc=None ИЛИ acc содержит "_error"
             if acc is None or (isinstance(acc, dict) and acc.get("_error")):
-                # Безопасное получение сообщения об ошибке
                 if acc and isinstance(acc, dict) and "_error" in acc:
                     error_msg: str = str(acc["_error"])
                 else:
@@ -277,10 +274,10 @@ async def erip_endpoint(request: Request):
                     status_code=200
                 )
             
-            # 3. Если ошибки нет — генерируем успешный ответ
+            # Если ошибки нет — генерируем успешный ответ
             resp_xml = build_serviceinfo_response(acc)
             
-            # 4. Сохраняем транзакцию
+            # Сохраняем транзакцию
             save_transaction(
                 req_id=req_id, req_type=req_type, account=data["personal_account"],
                 currency=data["currency"], amount_byn=0.0, erip_trx_id="",
@@ -295,7 +292,7 @@ async def erip_endpoint(request: Request):
         elif req_type == "TransactionStart":
             order_year = data.get("order_year")
             
-            # 1. Получаем данные счёта (передаём order_year)
+            # Получаем данные счёта (передаём order_year)
             acc = get_account_info_alex(data["personal_account"], order_year)
             
             if acc is None or (isinstance(acc, dict) and acc.get("_error")):
@@ -311,7 +308,7 @@ async def erip_endpoint(request: Request):
                     status_code=200
                 )
             
-                        # 🔹 ПРОВЕРКА: сумма не должна превышать долг
+            # Сумма не должна превышать долг
             debt_float = float(acc.get("debt", "0").replace(",", "."))
             amount_byn = data.get("amount_byn", 0.0)
             
@@ -342,15 +339,14 @@ async def erip_endpoint(request: Request):
                     status_code=200
                 )
 
-
-            # 🔹 ИЗВЛЕКАЕМ IDORDER ИЗ acc
+            # Извлекаем IDORDER
             idorder = acc.get("idorder")
             logger.info("transaction_start_idorder", 
                        idorder=idorder, 
                        order_year=order_year,
                        personal_account=data["personal_account"])
             
-            # ПРОВЕРКА НА БЛОКИРОВКУ ОДНОВРЕМЕННОЙ ОПЛАТЫ
+            # Проверка на блокировку одновременной оплаты
             from sqlalchemy import text
             db_check = SessionLocal()
             try:
@@ -419,7 +415,6 @@ async def erip_endpoint(request: Request):
                 try:
                     from sqlalchemy import text as sql_text
                     
-                    # 🔹 ДОСТАЁМ order_year ИЗ КОЛОНКИ
                     trx = db_trx.execute(
                         sql_text("SELECT personal_account, amount, order_year FROM transactions WHERE service_trx_id = :svc_id"),
                         {"svc_id": service_trx_id}
@@ -428,7 +423,7 @@ async def erip_endpoint(request: Request):
                     if trx and trx[1] >= 0:
                         personal_account, amount, order_year = trx
                         
-                        # 🔹 НАХОДИМ IDORDER ПО ORDERNUMBER + ГОДУ
+                        # Находим IDORDER по ORDERNUMBER + году
                         if order_year:
                             idorder_query = sql_text("""
                                 SELECT IDORDER FROM ALEX.ORDERS 
@@ -474,12 +469,12 @@ async def erip_endpoint(request: Request):
                        service_trx_id=service_trx_id,
                        amount=amount_raw)
             
-            # 🔹 ПРОВЕРКА: можно ли сторнировать эту транзакцию
+            # Проверка можно ли сторнировать эту транзакцию
             db_check = SessionLocal()
             try:
                 from sqlalchemy import text as sql_text
                 
-                # 1. Находим исходную транзакцию
+                # Находим исходную транзакцию
                 trx = db_check.execute(
                     sql_text("""
                         SELECT id, status, amount, idorder, order_year
@@ -497,7 +492,7 @@ async def erip_endpoint(request: Request):
                 
                 trx_id, status, amount, idorder, order_year = trx
                 
-                # 2. Проверяем статус (должен быть "success")
+                # Проверяем статус
                 if status != "success":
                     logger.warning("storn_transaction_not_success", 
                                   service_trx_id=service_trx_id, 
@@ -506,7 +501,7 @@ async def erip_endpoint(request: Request):
                     resp_xml = build_error_response(error_msg)
                     return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
                 
-                # 3. Проверяем, есть ли IDORDER
+                # Проверяем, есть ли IDORDER
                 if not idorder:
                     logger.warning("storn_no_idorder", service_trx_id=service_trx_id)
                     error_msg = f"Транзакция {service_trx_id} не имеет IDORDER"
@@ -545,12 +540,11 @@ async def erip_endpoint(request: Request):
                 status = "storned"
                 logger.info("storn_confirmed", request_id=req_id, service_trx_id=service_trx_id)
                 
-                # 🔹 ВОССТАНОВЛЕНИЕ ДОЛГА В ALEX.PAYMENTS
+                # Восстановление долга в ALEX.PAYMENTS
                 db_storn = SessionLocal()
                 try:
                     from sqlalchemy import text as sql_text
                     
-                    # 1. Находим транзакцию
                     trx = db_storn.execute(
                         sql_text("""
                             SELECT personal_account, amount, idorder
@@ -560,12 +554,12 @@ async def erip_endpoint(request: Request):
                         {"svc_id": service_trx_id}
                     ).fetchone()
                     
-                    if trx and trx[2]:  # idorder есть
+                    if trx and trx[2]: 
                         personal_account = trx[0]
                         amount = trx[1]
                         idorder = trx[2]
                         
-                        # 2. Сторнируем платёж в ALEX.PAYMENTS
+                        # Сторнируем платёж в ALEX.PAYMENTS
                         from app.services.db_service import storn_payment_in_alex
                         success = storn_payment_in_alex(
                             idorder=idorder,
@@ -597,10 +591,10 @@ async def erip_endpoint(request: Request):
                 status = "storn_unknown"
                 logger.warning("storned_value_unknown", request_id=req_id, storned=storned)
             
-            # 🔹 Обновляем статус транзакции
+            # Обновляем статус транзакции
             update_transaction_status(erip_trx_id, service_trx_id, status)
             
-            # 🔹 Возвращаем пустой ответ
+            # Возвращаем пустой ответ
             resp_xml = '<?xml version="1.0" encoding="windows-1251"?><ServiceProvider_Response></ServiceProvider_Response>'
             return Response(content=resp_xml.encode("windows-1251"), 
                            media_type="text/xml; charset=windows-1251", status_code=200)
