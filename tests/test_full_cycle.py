@@ -8,20 +8,17 @@ xml_start = '''<?xml version="1.0" encoding="windows-1251"?>
 <ServiceProvider_Request>
   <Version>1</Version>
   <RequestType>TransactionStart</RequestType>
-  <DateTime>20260625120000</DateTime>
+  <DateTime>20260626120000</DateTime>
   <Terminal Type="5">55411</Terminal>
-  <ServiceNo>1</ServiceNo>
-  <PersonalAccount>31620</PersonalAccount>
+  <ServiceNo>20001</ServiceNo>
+  <PersonalAccount>31620/26</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>CYCLE-START-007</RequestId>
+  <RequestId>TEST-019</RequestId>
   <TransactionStart>
-    <Amount>900</Amount>
-    <TransactionId>11122233344</TransactionId>
+    <Amount>9</Amount>
+    <TransactionId>717129113</TransactionId>
     <Agent>999</Agent>
     <AuthorizationType>MS</AuthorizationType>
-    <ParameterList Count="1">
-      <Parameter Idx="300">2026</Parameter>
-    </ParameterList>
   </TransactionStart>
 </ServiceProvider_Request>'''
 
@@ -33,7 +30,7 @@ print(resp1.content.decode('windows-1251'))
 # Извлекаем ServiceProvider_TrxId
 root = ET.fromstring(resp1.content)
 svc_trx_id = root.findtext(".//ServiceProvider_TrxId")
-print(f"\n✅ Получен ServiceProvider_TrxId: {svc_trx_id}\n")
+print(f"\nПолучен ServiceProvider_TrxId: {svc_trx_id}\n")
 
 if not svc_trx_id:
     print(" Ошибка: не удалось получить ServiceProvider_TrxId")
@@ -44,15 +41,15 @@ xml_result = f'''<?xml version="1.0" encoding="windows-1251"?>
 <ServiceProvider_Request>
   <Version>1</Version>
   <RequestType>TransactionResult</RequestType>
-  <DateTime>20260625120100</DateTime>
+  <DateTime>20200601155800</DateTime>
   <Terminal Type="5">55411</Terminal>
-  <ServiceNo>1</ServiceNo>
-  <PersonalAccount>31620</PersonalAccount>
+  <ServiceNo>20001</ServiceNo>
+  <PersonalAccount>31620/26</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>CYCLE-RESULT-007</RequestId>
+  <RequestId>38394076</RequestId>
   <TransactionResult>
-    <TransactionId>11122233344</TransactionId>
-    <ServiceProvider_TrxId>{svc_trx_id}</ServiceProvider_TrxId>
+    <TransactionId>717130252</TransactionId>  
+    <ServiceProvider_TrxId>09348197</ServiceProvider_TrxId>
   </TransactionResult>
 </ServiceProvider_Request>'''
 
