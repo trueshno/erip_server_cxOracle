@@ -497,7 +497,7 @@ async def erip_endpoint(request: Request):
                     logger.warning("storn_transaction_not_success", 
                                   service_trx_id=service_trx_id, 
                                   status=status)
-                    error_msg = f"Транзакция {service_trx_id} не может быть сторнирована (статус: {status})"
+                    error_msg = f"Сторнирование запрещено на стороне производителя услуг"
                     resp_xml = build_error_response(error_msg)
                     return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
                 
