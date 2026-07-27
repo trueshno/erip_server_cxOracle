@@ -18,6 +18,7 @@ ERROR_INVALID_FORMAT = (
 )
 
 logger = structlog.get_logger()
+audit_logger = structlog.get_logger("audit")
 
 def get_stored_response(request_id: str, request_type: str) -> Optional[str]:
     """
@@ -297,7 +298,6 @@ def record_payment_in_alex(
         # Генерируем номер документа
         doc_num = f"ERIP-{service_trx_id}" if service_trx_id else f"ERIP-{int(datetime.now().timestamp())}"
         
-        # Явное приведение типов для cx_Oracle
         params = {
             "idorder": int(idorder),
             "summa": float(amount),
@@ -313,11 +313,28 @@ def record_payment_in_alex(
                    idorder=idorder, 
                    amount=amount, 
                    num_erip=num_erip)
+
+        audit_logger.info(
+            "AUDIT_PAYMENT_SUCCESS", 
+            idorder=idorder, 
+            amount=amount, 
+            num_erip=num_erip,
+            service_trx_id=service_trx_id,
+            doc_num=doc_num
+        )
+
         return True
         
     except Exception as e:
         db.rollback()
         logger.error("payment_record_error", error=str(e), idorder=idorder, exc_info=True)
+
+        audit_logger.error(
+            "AUDIT_PAYMENT_FAILED", 
+            idorder=idorder, 
+            amount=amount, 
+            error=str(e)
+        )
         return False
     finally:
         db.close()
@@ -421,11 +438,27 @@ def storn_payment_in_alex(
                    amount=amount,
                    num=num)
         
+        audit_logger.info(
+            "AUDIT_STORN_SUCCESS", 
+            idorder=idorder, 
+            amount=amount,
+            service_trx_id=service_trx_id,
+            num=num
+        )
         return True
         
     except Exception as e:
         db.rollback()
         logger.error("storn_record_error", error=str(e), idorder=idorder, exc_info=True)
+
+        audit_logger.error(
+            "AUDIT_STORN_FAILED", 
+            idorder=idorder, 
+            amount=amount,
+            service_trx_id=service_trx_id,
+            error=str(e)
+        )
+
         return False
     finally:
         db.close()
