@@ -289,21 +289,17 @@ def record_payment_in_alex(
     """
     db = SessionLocal()
     try:
-        #  Однострочный SQL + кавычки для "NUM" + переименованный параметр :doc_num
+        #  Однострочный SQL
         insert_query = text(
-            "INSERT INTO ALEX.PAYMENTS (IDORDER, SUMMA, IDKASSA, NUM_ERIP, NUM_KARTCHEK, \"NUM\") "
-            "VALUES (:idorder, :summa, 1, :num_erip, :num_kartchek, :doc_num)"
-        )
-        
-        # Генерируем номер документа
-        doc_num = f"ERIP-{service_trx_id}" if service_trx_id else f"ERIP-{int(datetime.now().timestamp())}"
-        
+            "INSERT INTO ALEX.PAYMENTS (IDORDER, SUMMA, NUM_ERIP, NUM_KARTCHEK, NUM, PAYTYPE, IDKASSA)"
+            "VALUES (:idorder, :summa, :num_erip, :num_kartchek, '0', 'B', '3')"
+        ) 
+
         params = {
             "idorder": int(idorder),
             "summa": float(amount),
             "num_erip": int(num_erip) if num_erip and str(num_erip).isdigit() else None,
             "num_kartchek": str(num_kartchek)[:50] if num_kartchek else None,
-            "doc_num": doc_num[:50]
         }
         
         db.execute(insert_query, params)
