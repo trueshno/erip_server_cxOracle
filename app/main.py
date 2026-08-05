@@ -94,7 +94,7 @@ def parse_xml(xml_input) -> dict:
     root = ET.fromstring(xml_str.strip())
     terminal_elem = root.find(".//Terminal")
     
-    # формат номер/год
+    # Формат номер/год
     personal_account_raw = root.findtext("PersonalAccount") or ""
     
     if "/" in personal_account_raw:
@@ -171,13 +171,13 @@ def parse_xml(xml_input) -> dict:
 
 @app.post("/healthcheck", response_class=Response)
 async def erip_endpoint(request: Request):
-    """Обработчик всех входящих запросов ЕРИП"""
+    # Обработчик всех входящих запросов ЕРИП
     form = await request.form()
     XML = form.get("XML")
     
     xml_content: str = ""
     
-    # 1. Сначала читаем XML в строку
+    # Читаем XML в строку
     if isinstance(XML, UploadFile):
         file_content = await XML.read()
         if isinstance(file_content, bytes):
@@ -237,7 +237,7 @@ async def erip_endpoint(request: Request):
                 status_code=200
             )
 
-    # Теперь извлекаем req_id и req_type
+    # Извлекаем req_id и req_type
     req_id = data.get("request_id")
     req_type = data.get("request_type")
     

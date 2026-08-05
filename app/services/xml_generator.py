@@ -21,7 +21,6 @@ def _escape_xml(text: str) -> str:
             .replace('"', "&quot;")
             .replace("'", "&apos;"))
 
-
 def build_serviceinfo_response(acc: dict) -> bytes:
     if not acc:
         xml = (

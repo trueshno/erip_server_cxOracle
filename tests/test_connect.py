@@ -22,7 +22,7 @@ try:
     
     cur = conn.cursor()
     
-    # 1. Проверка количества строк в таблицах
+    # Проверка количества строк в таблицах
     tables_to_check = ['TRANSACTIONS', 'ACCOUNTS', 'TRANSACTION_INFO_LINES']
     print("\nROW COUNTS:")
     for table in tables_to_check:
@@ -31,7 +31,7 @@ try:
         status = "ПУСТАЯ" if count == 0 else f"{count} строк"
         print(f"  {table}: {status}")
 
- # 2. Попытка выбрать реальные данные (последние 5 записей)
+    # Последние 5 записей
     print("\nSAMPLE DATA (TRANSACTIONS):")
     cur.execute("""
         SELECT id, erip_request_id, amount, status, created_at 
@@ -49,7 +49,7 @@ try:
         for row in rows:
             print(f"  ID: {row[0]}, Req: {row[1]}, Amt: {row[2]}, Status: {row[3]}, Date: {row[4]}")
 
-    # 3. Проверка чтения CLOB
+    # Проверка чтения CLOB
     print("\nCLOB READ TEST:")
     cur.execute("""
         SELECT id, dbms_lob.getlength(error_text) as err_len, dbms_lob.getlength(metadata_json) as meta_len
