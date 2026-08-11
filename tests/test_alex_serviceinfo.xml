@@ -5,9 +5,9 @@
   <DateTime>20260626120000</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>20001</ServiceNo>
-  <PersonalAccount>72222/25</PersonalAccount>
+  <PersonalAccount>72345/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-025</RequestId>
+  <RequestId>TEST-030</RequestId>
   <ServiceInfo>
     <Agent>999</Agent>
   </ServiceInfo>

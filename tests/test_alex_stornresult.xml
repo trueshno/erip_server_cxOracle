@@ -5,13 +5,13 @@
   <DateTime>20200601081902</DateTime>
   <Terminal Type="5">55411</Terminal>
   <ServiceNo>1</ServiceNo>
-  <PersonalAccount>31620/26</PersonalAccount>
+  <PersonalAccount>72340/26</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>38394076</RequestId>
+  <RequestId>TEST-027</RequestId>
   <StornResult>
-    <TransactionId>717130252</TransactionId>
-    <ServiceProvider_TrxId>09348197</ServiceProvider_TrxId>
-    <Amount>9</Amount>
+    <TransactionId>717129107</TransactionId>
+    <ServiceProvider_TrxId>81685823</ServiceProvider_TrxId>
+    <Amount>16,8</Amount>
     <Storned>Y</Storned>  <!-- Y = успешно, N = нет -->
   </StornResult>
 </ServiceProvider_Request>

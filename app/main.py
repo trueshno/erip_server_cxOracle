@@ -440,7 +440,7 @@ async def erip_endpoint(request: Request):
                         if idorder_result and idorder_result[0]:
                             idorder = idorder_result[0]
                             from app.services.db_service import record_payment_in_alex
-                            success = record_payment_in_alex(idorder=idorder, amount=amount, num_erip=service_trx_id, service_trx_id=service_trx_id)
+                            success = record_payment_in_alex(idorder=idorder, amount=amount, num_erip=erip_trx_id, service_trx_id=service_trx_id)
                             
                             if success:
                                 logger.info("debt_written_off", idorder=idorder, amount=amount, order_year=order_year)

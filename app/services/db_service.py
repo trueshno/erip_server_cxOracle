@@ -285,7 +285,7 @@ def record_payment_in_alex(
     num_kartchek: str = ""
 ) -> bool:
     """
-    Записывает платёж в ALEX.PAYMENTS для реального списания задолженности
+    Записываем платёж в ALEX.PAYMENTS для реального списания задолженности
     """
     db = SessionLocal()
     try:
@@ -316,7 +316,7 @@ def record_payment_in_alex(
             amount=amount, 
             num_erip=num_erip,
             service_trx_id=service_trx_id,
-            doc_num=doc_num
+           # doc_num=doc_num
         )
 
         return True
