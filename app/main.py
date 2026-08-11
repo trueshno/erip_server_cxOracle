@@ -219,7 +219,7 @@ async def erip_endpoint(request: Request):
         personal_account = data.get("personal_account", "")
         order_year = data.get("order_year")
         
-        if not personal_account.isdigit() or len(personal_account) != 5:
+        if not personal_account.isdigit() or len(personal_account) < 2:
             from app.services.db_service import ERROR_INVALID_FORMAT
             logger.warning("invalid_account_format", personal_account=personal_account)
             return Response(
@@ -369,7 +369,7 @@ async def erip_endpoint(request: Request):
             finally:
                 db_check.close()
 
-            svc_trx_id = "".join([str(secrets.randbelow(10)) for _ in range(8)])
+            svc_trx_id = str(secrets.randbelow(90000000) + 10000000)
             resp_xml = build_transactionstart_response(svc_trx_id)
 
             save_transaction(

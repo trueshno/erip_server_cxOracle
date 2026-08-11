@@ -7,9 +7,9 @@
   <ServiceNo>20001</ServiceNo>
   <PersonalAccount>72345/25</PersonalAccount>
   <Currency>933</Currency>
-  <RequestId>TEST-028</RequestId>
+  <RequestId>TEST-050</RequestId>
   <TransactionResult>
-    <TransactionId>717129177</TransactionId>  
-    <ServiceProvider_TrxId>84073557</ServiceProvider_TrxId>
+    <TransactionId>717129176</TransactionId>  
+    <ServiceProvider_TrxId>4517185</ServiceProvider_TrxId>
   </TransactionResult>
 </ServiceProvider_Request>
