@@ -324,6 +324,23 @@ async def erip_endpoint(request: Request):
             return Response(content=resp_xml, media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionStart":
+            # Аудит запроса TransactionStart
+            audit_logger.info(
+                "AUDIT_TRANSACTION_START_RECEIVED",
+                request_id=req_id,
+                datetime=data.get("datetime"),
+                service_no=data.get("service_no"),
+                service_id=data.get("service_id"),
+                personal_account=data.get("personal_account"),
+                order_year=data.get("order_year"),
+                currency=data.get("currency"),
+                terminal_id=data.get("terminal_id"),
+                terminal_type=data.get("terminal_type"),
+                amount_byn=data.get("amount_byn"),
+                erip_trx_id=data.get("erip_trx_id"),
+                auth_type=data.get("auth_type")
+            )
+
             order_year = data.get("order_year")
             
             # Получаем данные счёта (передаём order_year)
@@ -423,6 +440,23 @@ async def erip_endpoint(request: Request):
                            media_type="text/xml; charset=windows-1251", status_code=200)
 
         elif req_type == "TransactionResult":
+            # Аудит запроса TransactionResult
+            audit_logger.info(
+                "AUDIT_TRANSACTION_RESULT_RECEIVED",
+                request_id=req_id,
+                datetime=data.get("datetime"),
+                service_no=data.get("service_no"),
+                service_id=data.get("service_id"),
+                personal_account=data.get("personal_account"),
+                order_year=data.get("order_year"),
+                currency=data.get("currency"),
+                terminal_id=data.get("terminal_id"),
+                terminal_type=data.get("terminal_type"),
+                erip_trx_id=data.get("erip_trx_id"),
+                service_trx_id=data.get("service_trx_id"),
+                error_text=data.get("error_text")
+            )
+            
             erip_trx_id = data.get("erip_trx_id") or ""
             service_trx_id = data.get("service_trx_id") or ""
             error_text = data.get("error_text")
