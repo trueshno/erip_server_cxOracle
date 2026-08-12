@@ -23,6 +23,7 @@ from app.services.xml_generator import (
 
 setup_logging(level="DEBUG")  # Изменить на INFO для продакшена
 logger = structlog.get_logger()
+audit_logger = structlog.get_logger("audit")
 
 app = FastAPI(title="ERIP Provider API", docs_url=None, redoc_url=None)
 
@@ -114,7 +115,10 @@ def parse_xml(xml_input) -> dict:
         "order_year": order_year,
         "currency": root.findtext("Currency"),
         "terminal_id": root.findtext("Terminal"),
-        "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0"
+        "terminal_type": terminal_elem.get("Type", "0") if terminal_elem is not None else "0",
+        "datetime": root.findtext("DateTime"),
+        "service_no": root.findtext("ServiceNo"),
+        "service_id": root.findtext("ServiceId")
     }
     
     req_type = data["request_type"]
@@ -207,6 +211,22 @@ async def erip_endpoint(request: Request):
         return Response(content=build_error_response("Invalid XML"), 
                        media_type="text/xml; charset=windows-1251", status_code=200)
 
+    # Аудит входящего запроса ЕРИП
+    logger.info(
+        "erip_request_audit",
+        request_id=data.get("request_id"),
+        request_type=data.get("request_type"),
+        service_no=data.get("service_no"),
+        service_id=data.get("service_id"),
+        personal_account=data.get("personal_account"),
+        order_year=data.get("order_year"),
+        terminal_id=data.get("terminal_id"),
+        terminal_type=data.get("terminal_type"),
+        currency=data.get("currency"),
+        agent=data.get("agent"),
+        erip_trx_id=data.get("erip_trx_id")
+    )
+
     req_id = data.get("request_id")
     req_type = data.get("request_type")
     
@@ -255,6 +275,20 @@ async def erip_endpoint(request: Request):
     # Бизнес-логика
     try:
         if req_type == "ServiceInfo":
+
+            audit_logger.info(
+            "AUDIT_SERVICE_INFO_RECEIVED",
+            request_id=req_id,
+            datetime=data.get("datetime"),
+            service_no=data.get("service_no"),
+            personal_account=data.get("personal_account"),
+            order_year=data.get("order_year"),
+            currency=data.get("currency"),
+            terminal_id=data.get("terminal_id"),
+            terminal_type=data.get("terminal_type"),
+            agent=data.get("agent")
+            )
+                
             # Получаем год из параметров
             order_year = data.get("order_year")
             
